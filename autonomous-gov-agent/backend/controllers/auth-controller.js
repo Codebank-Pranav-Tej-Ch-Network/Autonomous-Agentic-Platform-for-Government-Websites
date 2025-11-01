@@ -1,169 +1,191 @@
-const User = require("../models/User");
+const User = require("../models/user");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-//register controller
-//register controller
+// ========================================
+// ✅ REGISTER CONTROLLER
+// ========================================
 const registerUser = async (req, res) => {
   try {
-    //extract user information from request body
-    const { username, email, password, phoneno, gender, address } = req.body;
+    const { fullName, email, password, phoneNumber, dob, gender } = req.body;
 
-    //check if the user already exists in the database
-    const checkExistingUser = await User.findOne({ email });
-
-    if (checkExistingUser) {
+    // Check all required fields
+    if (!fullName || !email || !password || !phoneNumber || !dob || !gender) {
       return res.status(400).json({
         success: false,
-        message: "User with this email already exists. Please try another email.",
+        message: "Please fill all required fields.",
       });
     }
 
-    //hash user password
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists with this email.",
+      });
+    }
+
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    //create a new user and save in your database
-    const newlyCreatedUser = new User({
-      username,
+    // Create new user
+    const newUser = new User({
+      fullName,
       email,
       password: hashedPassword,
-      phoneno,
+      phoneNumber,
+      dob,
       gender,
-      address
     });
 
-    await newlyCreatedUser.save();
+    await newUser.save();
 
-    // ✅ Generate JWT token after registration
-    const accessToken = jwt.sign(
-      {
-        userId: newlyCreatedUser._id,
-        username: newlyCreatedUser.username,
-      },
-      process.env.JWT_SECRET_KEY,
+    // Create JWT token
+    const token = jwt.sign(
+      { id: newUser._id, email: newUser.email },
+      process.env.JWT_SECRET_KEY || "secret123",
       { expiresIn: "1d" }
     );
 
-    // ✅ Send token in response
     res.status(201).json({
       success: true,
-      message: "User registered successfully!",
-      accessToken, // send token
+      message: "Registration successful!",
+      token,
       user: {
-        id: newlyCreatedUser._id,
-        username: newlyCreatedUser.username,
-        email: newlyCreatedUser.email
-      }
+        id: newUser._id,
+        fullName: newUser.fullName,
+        email: newUser.email,
+        phoneNumber: newUser.phoneNumber,
+        dob: newUser.dob,
+        gender: newUser.gender,
+      },
     });
-
-  } catch (e) {
-    console.log(e);
+  } catch (error) {
+    console.error("❌ Registration error:", error);
     res.status(500).json({
       success: false,
-      message: "Some error occurred! Please try again",
+      message: "Server error during registration.",
     });
   }
 };
 
-
-//login controller
-
+// ========================================
+// ✅ LOGIN CONTROLLER
+// ========================================
 const loginUser = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    //find if the current user is exists in database or not
-    const user = await User.findOne({ username });
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide both email and password.",
+      });
+    }
 
+    // Find user by email
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
-        message: `User doesn't exists`,
-      });
-    }
-    //if the password is correct or not
-    const isPasswordMatch = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordMatch) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid credentials!",
+        message: "User not found.",
       });
     }
 
-    //create user token
-    const accessToken = jwt.sign(
-      {
-        userId: user._id,
-        username: user.username,
-      },
-      process.env.JWT_SECRET_KEY,
-      {
-        expiresIn: "1d",
-      }
+    // Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid credentials.",
+      });
+    }
+
+    // Generate token
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET_KEY || "secret123",
+      { expiresIn: "1d" }
     );
 
     res.status(200).json({
       success: true,
-      message: "Logged in successful",
-      accessToken,
+      message: "Login successful!",
+      token,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        dob: user.dob,
+        gender: user.gender,
+      },
     });
-  } catch (e) {
-    console.log(e);
+  } catch (error) {
+    console.error("❌ Login error:", error);
     res.status(500).json({
       success: false,
-      message: "Some error occured! Please try again",
+      message: "Server error during login.",
     });
   }
 };
 
+// ========================================
+// ✅ CHANGE PASSWORD CONTROLLER
+// ========================================
 const changePassword = async (req, res) => {
   try {
-    const userId = req.userInfo.userId;
+    const { email, oldPassword, newPassword } = req.body;
 
-    //extract old and new password;
-    const { oldPassword, newPassword } = req.body;
+    // Check for input
+    if (!email || !oldPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide email, old password, and new password.",
+      });
+    }
 
-    //find the current logged in user
-    const user = await User.findById(userId);
-
+    // Find user
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
-        message: "User not found",
+        message: "User not found.",
       });
     }
 
-    //check if the old password is correct
-    const isPasswordMatch = await bcrypt.compare(oldPassword, user.password);
-
-    if (!isPasswordMatch) {
+    // Verify old password
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
       return res.status(400).json({
         success: false,
-        message: "Old password is not correct! Please try again.",
+        message: "Old password is incorrect.",
       });
     }
 
-    //hash the new password here
+    // Hash new password
     const salt = await bcrypt.genSalt(10);
-    const newHashedPassword = await bcrypt.hash(newPassword, salt);
+    const hashed = await bcrypt.hash(newPassword, salt);
 
-    //update user password
-    user.password = newHashedPassword;
+    // Save new password
+    user.password = hashed;
     await user.save();
 
     res.status(200).json({
       success: true,
-      message: "Password changed successfully",
+      message: "Password changed successfully!",
     });
-  } catch (e) {
-    console.log(e);
+  } catch (error) {
+    console.error("❌ Password change error:", error);
     res.status(500).json({
       success: false,
-      message: "Some error occured! Please try again",
+      message: "Server error while changing password.",
     });
   }
 };
 
+// ========================================
 module.exports = { registerUser, loginUser, changePassword };

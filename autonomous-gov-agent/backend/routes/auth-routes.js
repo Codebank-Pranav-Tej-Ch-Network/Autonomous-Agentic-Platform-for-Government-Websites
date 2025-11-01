@@ -5,6 +5,11 @@ const {
   changePassword,
 } = require("../controllers/auth-controller");
 const router = express.Router();
+router.use((req, res, next) => {
+  console.log(`📩 ${req.method} ${req.originalUrl}`, req.body);
+  next();
+});
+
 const authMiddleware = require("../middleware/auth-middleware");
 
 //all routes are related to authentication & authorization
