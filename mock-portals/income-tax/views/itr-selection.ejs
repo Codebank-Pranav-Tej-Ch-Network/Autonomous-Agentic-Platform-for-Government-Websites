@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header') %>
+  
+  <main class="main-content">
+    <div class="container">
+      <div class="card">
+        <div class="card-header">
+          <h2>🎯 Select ITR Form and Assessment Year</h2>
+        </div>
+        
+        <form method="POST" action="/itr-form">
+          <div class="form-group">
+            <label for="assessmentYear">Assessment Year *</label>
+            <select id="assessmentYear" name="assessmentYear" required>
+              <option value="">-- Select Assessment Year --</option>
+              <option value="2024-25">2024-25 (FY 2023-24)</option>
+              <option value="2023-24">2023-24 (FY 2022-23)</option>
+              <option value="2022-23">2022-23 (FY 2021-22)</option>
+            </select>
+            <span class="form-help">Select the assessment year for which you want to file return</span>
+          </div>
+          
+          <div class="form-group">
+            <label for="itrType">ITR Form Type *</label>
+            <select id="itrType" name="itrType" required>
+              <option value="">-- Select ITR Form --</option>
+              <option value="ITR1">ITR-1 (Sahaj) - For salaried individuals</option>
+              <option value="ITR2">ITR-2 - For individuals without business income</option>
+              <option value="ITR3">ITR-3 - For individuals with business/profession</option>
+              <option value="ITR4">ITR-4 (Sugam) - For presumptive business income</option>
+            </select>
+            <span class="form-help">Choose the appropriate ITR form based on your income sources</span>
+          </div>
+          
+          <div class="alert alert-info" style="margin: 1.5rem 0;">
+            <strong>📌 ITR Form Selection Guide:</strong><br><br>
+            <strong>ITR-1 (Sahaj):</strong> For salaried individuals with income up to ₹50 lakh from salary, one house property, and other sources.<br><br>
+            <strong>ITR-2:</strong> For individuals and HUFs not having business/professional income.<br><br>
+            <strong>ITR-3:</strong> For individuals and HUFs having business/professional income.<br><br>
+            <strong>ITR-4 (Sugam):</strong> For presumptive income from business and profession.
+          </div>
+          
+          <div class="btn-group">
+            <button type="submit" class="btn btn-primary">
+              Continue to Form →
+            </button>
+            <a href="/dashboard" class="btn btn-secondary">
+              ← Back to Dashboard
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+  
+  <%- include('partials/footer') %>
+</body>
+</html>

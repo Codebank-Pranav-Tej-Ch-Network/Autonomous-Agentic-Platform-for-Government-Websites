@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', {user: null}) %>
+  
+  <main class="main-content">
+    <div class="container">
+      <div class="login-container">
+        <div class="card">
+          <div class="card-header">
+            <h2>🔐 Login to e-Filing Portal</h2>
+          </div>
+          
+          <% if (error) { %>
+            <div class="alert alert-error">
+              <strong>⚠️ Error:</strong> <%= error %>
+            </div>
+          <% } %>
+          
+          <div class="alert alert-info">
+            <strong>ℹ️ Test Credentials:</strong><br>
+            PAN: ABCDE1234F | Password: TestPassword123<br>
+            CAPTCHA: MOCK
+          </div>
+          
+          <form method="POST" action="/login">
+            <div class="form-group">
+              <label for="pan">PAN (Permanent Account Number) *</label>
+              <input 
+                type="text" 
+                id="pan" 
+                name="pan" 
+                placeholder="Enter your PAN"
+                required
+                maxlength="10"
+                pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}"
+                title="PAN format: ABCDE1234F"
+                style="text-transform: uppercase;"
+              >
+              <span class="form-help">Enter 10-digit PAN in capital letters</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="password">Password *</label>
+              <input 
+                type="password" 
+                id="password" 
+                name="password" 
+                placeholder="Enter your password"
+                required
+                minlength="6"
+              >
+              <span class="form-help">Case-sensitive password</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="captcha">CAPTCHA *</label>
+              <div class="captcha-section">
+                <div class="captcha-image">MOCK</div>
+                <input 
+                  type="text" 
+                  id="captcha" 
+                  name="captcha" 
+                  placeholder="Enter CAPTCHA"
+                  required
+                  style="flex: 1;"
+                >
+              </div>
+              <span class="form-help">Enter the text shown above</span>
+            </div>
+            
+            <div class="form-group">
+              <button type="submit" class="btn btn-primary btn-block">
+                Login to Continue
+              </button>
+            </div>
+          </form>
+          
+          <div style="text-align: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; margin-bottom: 0.5rem;">Don't have an account?</p>
+            <a href="#" class="btn btn-secondary">Register Now</a>
+          </div>
+          
+          <div style="margin-top: 1.5rem; text-align: center;">
+            <a href="#" style="color: #3b82f6; text-decoration: none;">Forgot Password?</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <%- include('partials/footer', {user: null}) %>
+  
+  <script>
+    // Auto-uppercase PAN input
+    document.getElementById('pan').addEventListener('input', function(e) {
+      e.target.value = e.target.value.toUpperCase();
+    });
+  </script>
+</body>
+</html>

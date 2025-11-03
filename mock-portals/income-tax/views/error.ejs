@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header', {user: user || null}) %>
+  
+  <main class="main-content">
+    <div class="container">
+      <div class="card" style="text-align: center; padding: 3rem 2rem;">
+        <div style="width: 100px; height: 100px; background-color: #fee2e2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 2rem; font-size: 3rem;">
+          ⚠️
+        </div>
+        
+        <h1 style="color: #dc2626; font-size: 2.5rem; margin-bottom: 1rem;">
+          Error <%= errorCode %>
+        </h1>
+        
+        <p style="font-size: 1.25rem; color: #6b7280; margin-bottom: 2rem;">
+          <%= errorMessage %>
+        </p>
+        
+        <div class="btn-group" style="justify-content: center;">
+          <a href="/" class="btn btn-primary">
+            🏠 Go to Homepage
+          </a>
+          <a href="/dashboard" class="btn btn-secondary">
+            📊 Go to Dashboard
+          </a>
+        </div>
+        
+        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; margin-bottom: 1rem;">
+            If you believe this is an error, please contact our helpdesk:
+          </p>
+          <p style="color: #1e3a8a; font-weight: 500;">
+            📞 1800-180-1961 | 📧 efilingwebmanager@incometax.gov.in
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <%- include('partials/footer', {user: user || null}) %>
+</body>
+</html>
+```
+
+Now let's create a simple `.gitignore` file for the mock portal. Create `income-tax/.gitignore`:
+```
+node_modules/
+*.log
+npm-debug.log*
+.env
+.DS_Store

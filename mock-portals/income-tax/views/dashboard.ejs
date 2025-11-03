@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header') %>
+  
+  <main class="main-content">
+    <div class="container">
+      <!-- Welcome Message -->
+      <div class="card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+        <h1 style="color: white; font-size: 2rem; margin-bottom: 0.5rem;">
+          Welcome, <%= user.name %>! 👋
+        </h1>
+        <p style="opacity: 0.95;">PAN: <%= user.pan %> | Last Login: <%= new Date(user.loginTime).toLocaleString('en-IN') %></p>
+      </div>
+      
+      <!-- Quick Stats -->
+      <h2 style="color: #1e3a8a; margin: 2rem 0 1rem;">Your Dashboard</h2>
+      <div class="dashboard-grid">
+        <div class="dashboard-card" style="border-left-color: #10b981;">
+          <h3>✅ ITR Status</h3>
+          <p>No pending returns</p>
+          <span style="color: #10b981; font-weight: bold;">All Clear</span>
+        </div>
+        
+        <div class="dashboard-card" style="border-left-color: #f59e0b;">
+          <h3>💰 Outstanding Demand</h3>
+          <p>Tax dues and penalties</p>
+          <span style="font-size: 1.5rem; font-weight: bold;">₹ 0</span>
+        </div>
+        
+        <div class="dashboard-card" style="border-left-color: #3b82f6;">
+          <h3>🔄 Refund Status</h3>
+          <p>Expected refund amount</p>
+          <span style="font-size: 1.5rem; font-weight: bold;">₹ 0</span>
+        </div>
+        
+        <div class="dashboard-card" style="border-left-color: #8b5cf6;">
+          <h3>📊 Tax Credit (26AS)</h3>
+          <p>View your Form 26AS</p>
+          <a href="#" style="color: #8b5cf6; text-decoration: none; font-weight: 500;">View →</a>
+        </div>
+      </div>
+      
+      <!-- Main Actions -->
+      <div style="margin-top: 2rem;">
+        <h2 style="color: #1e3a8a; margin-bottom: 1rem;">What would you like to do?</h2>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+          <div class="card">
+            <h3 style="color: #1e3a8a; margin-bottom: 1rem;">📝 File Returns</h3>
+            <p style="color: #6b7280; margin-bottom: 1rem;">File your Income Tax Return for Assessment Year 2024-25</p>
+            <a href="/file-itr" class="btn btn-primary btn-block">File ITR Now</a>
+          </div>
+          
+          <div class="card">
+            <h3 style="color: #1e3a8a; margin-bottom: 1rem;">📄 View Filed Returns</h3>
+            <p style="color: #6b7280; margin-bottom: 1rem;">Check status and download previously filed ITRs</p>
+            <a href="#" class="btn btn-secondary btn-block">View Returns</a>
+          </div>
+          
+          <div class="card">
+            <h3 style="color: #1e3a8a; margin-bottom: 1rem;">💳 Pay Tax</h3>
+            <p style="color: #6b7280; margin-bottom: 1rem;">Pay advance tax, self-assessment tax, or other dues</p>
+            <a href="#" class="btn btn-secondary btn-block">e-Pay Tax</a>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Recent Activity -->
+      <div class="card" style="margin-top: 2rem;">
+        <div class="card-header">
+          <h2>🕐 Recent Activity</h2>
+        </div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Activity</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><%= new Date().toLocaleDateString('en-IN') %></td>
+              <td>Login to e-Filing Portal</td>
+              <td><span style="color: #10b981; font-weight: 500;">✓ Success</span></td>
+            </tr>
+            <tr>
+              <td colspan="3" style="text-align: center; color: #6b7280;">No previous activity</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+  
+  <%- include('partials/footer') %>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header') %>
+  
+  <main class="main-content">
+    <div class="container">
+      <div class="card">
+        <div class="card-header">
+          <h2>📝 e-File Income Tax Return</h2>
+        </div>
+        
+        <div class="alert alert-info">
+          <strong>Assessment Year 2024-25</strong><br>
+          File your return for Financial Year 2023-24 (1st April 2023 to 31st March 2024)
+        </div>
+        
+        <div style="margin-top: 2rem;">
+          <h3 style="color: #1e3a8a; margin-bottom: 1rem;">Choose Your Action:</h3>
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+            <a href="/file-itr" class="dashboard-card" style="text-decoration: none; color: inherit;">
+              <h3 style="color: #10b981;">🆕 File New ITR</h3>
+              <p>Start filing a new Income Tax Return for AY 2024-25</p>
+              <div style="margin-top: 1rem;">
+                <span class="btn btn-success" style="font-size: 0.9rem;">Start Filing →</span>
+              </div>
+            </a>
+            
+            <div class="dashboard-card" style="border-left-color: #6b7280;">
+              <h3 style="color: #6b7280;">💾 Resume Draft</h3>
+              <p>Continue working on a saved draft ITR</p>
+              <div style="margin-top: 1rem;">
+                <span class="btn btn-secondary" style="font-size: 0.9rem;">View Drafts →</span>
+              </div>
+            </div>
+            
+            <div class="dashboard-card" style="border-left-color: #3b82f6;">
+              <h3 style="color: #3b82f6;">📤 Upload ITR JSON</h3>
+              <p>Upload pre-filled ITR JSON file</p>
+              <div style="margin-top: 1rem;">
+                <span class="btn btn-secondary" style="font-size: 0.9rem;">Upload File →</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #e5e7eb;">
+          <h3 style="color: #1e3a8a; margin-bottom: 1rem;">📋 Before You File</h3>
+          <ul style="line-height: 2; color: #4b5563;">
+            <li>✓ Keep your Form 16 / 16A ready</li>
+            <li>✓ Have details of all your income sources</li>
+            <li>✓ Keep investment proofs for deductions (80C, 80D, etc.)</li>
+            <li>✓ Bank account details for refund (if any)</li>
+            <li>✓ Aadhaar number for e-Verification</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <%- include('partials/footer') %>
+</body>
+</html>

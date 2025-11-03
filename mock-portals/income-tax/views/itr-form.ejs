@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <%- include('partials/header') %>
+  
+  <main class="main-content">
+    <div class="container">
+      <div class="card">
+        <div class="card-header">
+          <h2>📝 <%= itrType %> - Assessment Year <%= assessmentYear %></h2>
+        </div>
+        
+        <div class="alert alert-warning">
+          <strong>⚠️ Important:</strong> Please ensure all information is accurate. Incorrect information may lead to processing delays or penalties.
+        </div>
+        
+        <form method="POST" action="/itr-submit" id="itrForm">
+          <!-- Personal Information Section -->
+          <div style="background: #f3f4f6; padding: 1rem; border-radius: 4px; margin-bottom: 2rem;">
+            <h3 style="color: #1e3a8a; margin-bottom: 1rem;">👤 Personal Information</h3>
+            
+            <div class="form-group-inline">
+              <div class="form-group">
+                <label for="pan">PAN *</label>
+                <input type="text" id="pan" name="pan" value="<%= user.pan %>" readonly style="background: #e5e7eb;">
+              </div>
+              
+              <div class="form-group">
+                <label for="name">Name *</label>
+                <input type="text" id="name" name="name" value="<%= user.name %>" required>
+              </div>
+            </div>
+            
+            <div class="form-group-inline">
+              <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" name="email" value="<%= user.email %>" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="mobile">Mobile Number *</label>
+                <input type="tel" id="mobile" name="mobile" value="<%= user.mobile %>" required pattern="[0-9]{10}">
+              </div>
+            </div>
+          </div>
+          
+          <!-- Income Details Section -->
+          <div style="background: #f3f4f6; padding: 1rem; border-radius: 4px; margin-bottom: 2rem;">
+            <h3 style="color: #1e3a8a; margin-bottom: 1rem;">💰 Income Details</h3>
+            
+            <div class="form-group">
+              <label for="salaryIncome">Salary Income (₹) *</label>
+              <input type="number" id="salaryIncome" name="salaryIncome" placeholder="Enter total salary income" required min="0" step="1">
+              <span class="form-help">Enter gross salary as per Form 16</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="housePropertyIncome">Income from House Property (₹)</label>
+              <input type="number" id="housePropertyIncome" name="housePropertyIncome" placeholder="0" value="0" min="0" step="1">
+              <span class="form-help">Enter net income from house property (can be negative for loss)</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="otherIncome">Income from Other Sources (₹)</label>
+              <input type="number" id="otherIncome" name="otherIncome" placeholder="0" value="0" min="0" step="1">
+              <span class="form-help">Interest income, dividends, etc.</span>
+            </div>
+            
+            <div style="background: white; padding: 1rem; border-radius: 4px; margin-top: 1rem;">
+              <strong>Gross Total Income: </strong>
+              <span id="grossTotal" style="color: #1e3a8a; font-size: 1.25rem;">₹ 0</span>
+            </div>
+          </div>
+          
+          <!-- Deductions Section -->
+          <div style="background: #f3f4f6; padding: 1rem; border-radius: 4px; margin-bottom: 2rem;">
+            <h3 style="color: #1e3a8a; margin-bottom: 1rem;">🎯 Deductions</h3>
+            
+            <div class="form-group">
+              <label for="section80C">Section 80C (₹)</label>
+              <input type="number" id="section80C" name="section80C" placeholder="0" value="0" min="0" max="150000" step="1">
+              <span class="form-help">PPF, LIC, ELSS, etc. (Maximum: ₹1,50,000)</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="section80D">Section 80D - Health Insurance (₹)</label>
+              <input type="number" id="section80D" name="section80D" placeholder="0" value="0" min="0" max="100000" step="1">
+              <span class="form-help">Health insurance premiums (Maximum: ₹25,000 / ₹50,000 for senior citizens)</span>
+            </div>
+            
+            <div class="form-group">
+              <label for="section80G">Section 80G - Donations (₹)</label>
+              <input type="number" id="section80G" name="section80G" placeholder="0" value="0" min="0" step="1">
+              <span class="form-help">Donations to eligible charitable institutions</span>
+            </div>
+            
+            <div style="background: white; padding: 1rem; border-radius: 4px; margin-top: 1rem;">
+              <strong>Total Deductions: </strong>
+              <span id="totalDeductions" style="color: #10b981; font-size: 1.25rem;">₹ 0</span>
+            </div>
+          </div>
+          
+          <!-- Tax Computation -->
+          <div style="background: #fef3c7; padding: 1rem; border-radius: 4px; margin-bottom: 2rem; border: 2px solid #f59e0b;">
+            <h3 style="color: #92400e; margin-bottom: 1rem;">🧮 Tax Computation Summary</h3>
+            <table style="width: 100%;">
+              <tr>
+                <td><strong>Gross Total Income:</strong></td>
+                <td style="text-align: right;"><span id="summaryGross">₹ 0</span></td>
+              </tr>
+              <tr>
+                <td><strong>Total Deductions:</strong></td>
+                <td style="text-align: right;"><span id="summaryDeductions">₹ 0</span></td>
+              </tr>
+              <tr style="border-top: 2px solid #f59e0b;">
+                <td><strong>Taxable Income:</strong></td>
+                <td style="text-align: right;"><strong><span id="taxableIncome">₹ 0</span></strong></td>
+              </tr>
+              <tr>
+                <td><strong>Tax Liability (Estimated):</strong></td>
+                <td style="text-align: right;"><strong><span id="taxLiability" style="color: #dc2626;">₹ 0</span></strong></td>
+              </tr>
+            </table>
+          </div>
+          
+          <!-- Bank Details for Refund -->
+          <div style="background: #f3f4f6; padding: 1rem; border-radius: 4px; margin-bottom: 2rem;">
+            <h3 style="color: #1e3a8a; margin-bottom: 1rem;">🏦 Bank Details (for Refund, if any)</h3>
+            
+            <div class="form-group-inline">
+              <div class="form-group">
+                <label for="bankName">Bank Name *</label>
+                <input type="text" id="bankName" name="bankName" placeholder="Enter bank name" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="accountNumber">Account Number *</label>
+                <input type="text" id="accountNumber" name="accountNumber" placeholder="Enter account number" required>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="ifscCode">IFSC Code *</label>
+              <input type="text" id="ifscCode" name="ifscCode" placeholder="Enter IFSC code" required pattern="[A-Z]{4}0[A-Z0-9]{6}" style="text-transform: uppercase;">
+              <span class="form-help">11-character IFSC code (e.g., SBIN0001234)</span>
+            </div>
+          </div>
+          
+          <!-- Verification -->
+          <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 0.5rem;">
+              <input type="checkbox" name="verification" required style="width: auto;">
+              <span>I hereby declare that the information provided above is true, correct and complete to the best of my knowledge and belief *</span>
+            </label>
+          </div>
+          
+          <!-- Submit Buttons -->
+          <div class="btn-group">
+            <button type="button" onclick="showReview()" class="btn btn-primary">
+              Review Before Submit
+            </button>
+            <button type="button" onclick="saveDraft()" class="btn btn-secondary">
+              💾 Save as Draft
+            </button>
+            <a href="/dashboard" class="btn btn-secondary">
+              Cancel
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+  
+  <%- include('partials/footer') %>
+  
+  <script>
+    // Calculate totals automatically
+    function calculateTotals() {
+      const salary = parseFloat(document.getElementById('salaryIncome').value) || 0;
+      const houseProp = parseFloat(document.getElementById('housePropertyIncome').value) || 0;
+      const other = parseFloat(document.getElementById('otherIncome').value) || 0;
+      
+      const section80C = parseFloat(document.getElementById('section80C').value) || 0;
+      const section80D = parseFloat(document.getElementById('section80D').value) || 0;
+      const section80G = parseFloat(document.getElementById('section80G').value) || 0;
+      
+      const grossTotal = salary + houseProp + other;
+      const totalDeductions = section80C + section80D + section80G;
+      const taxableIncome = Math.max(0, grossTotal - totalDeductions);
+      
+      // Simple tax calculation (Old regime for demo)
+      let tax = 0;
+      if (taxableIncome > 1000000) {
+        tax = 112500 + (taxableIncome - 1000000) * 0.30;
+      } else if (taxableIncome > 500000) {
+        tax = 12500 + (taxableIncome - 500000) * 0.20;
+      } else if (taxableIncome > 250000) {
+        tax = (taxableIncome - 250000) * 0.05;
+      }
+      
+      // Add 4% cess
+      tax = tax * 1.04;
+      
+      // Update display
+      document.getElementById('grossTotal').textContent = '₹ ' + grossTotal.toLocaleString('en-IN');
+      document.getElementById('totalDeductions').textContent = '₹ ' + totalDeductions.toLocaleString('en-IN');
+      document.getElementById('summaryGross').textContent = '₹ ' + grossTotal.toLocaleString('en-IN');
+      document.getElementById('summaryDeductions').textContent = '₹ ' + totalDeductions.toLocaleString('en-IN');
+      document.getElementById('taxableIncome').textContent = '₹ ' + taxableIncome.toLocaleString('en-IN');
+      document.getElementById('taxLiability').textContent = '₹ ' + Math.round(tax).toLocaleString('en-IN');
+    }
+    
+    // Attach event listeners to all input fields
+    const incomeFields = ['salaryIncome', 'housePropertyIncome', 'otherIncome', 'section80C', 'section80D', 'section80G'];
+    incomeFields.forEach(fieldId => {
+      document.getElementById(fieldId).addEventListener('input', calculateTotals);
+    });
+    
+    // Auto-uppercase IFSC code
+    document.getElementById('ifscCode').addEventListener('input', function(e) {
+      e.target.value = e.target.value.toUpperCase();
+    });
+    
+    // Show review before final submission
+    function showReview() {
+      if (!document.getElementById('itrForm').checkValidity()) {
+        alert('Please fill all required fields correctly.');
+        document.getElementById('itrForm').reportValidity();
+        return;
+      }
+      
+      const confirmation = confirm(
+        'Please review all the information carefully before submitting.\n\n' +
+        'Once submitted, you cannot edit the return.\n\n' +
+        'Click OK to proceed with submission.'
+      );
+      
+      if (confirmation) {
+        document.getElementById('itrForm').submit();
+      }
+    }
+    
+    // Save as draft functionality
+    function saveDraft() {
+      alert('Draft saved successfully! You can resume filing later from the e-File menu.');
+      window.location.href = '/dashboard';
+    }
+    
+    // Initialize calculations on page load
+    calculateTotals();
+  </script>
+</body>
+</html>
