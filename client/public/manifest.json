@@ -1,0 +1,9 @@
+{
+  "short_name": "Gov Automation",
+  "name": "Government Automation Agent",
+  "icons": [],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#9333ea",
+  "background_color": "#1f2937"
+}

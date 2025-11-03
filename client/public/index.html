@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="AI-powered government services automation agent - Intelligent automation for ITR filing, DigiLocker, and EPFO services"
+    />
+    
+    <!-- 
+      This is the title that appears in the browser tab.
+      You can change this to whatever you want.
+    -->
+    <title>Government Automation Agent</title>
+    
+    <!--
+      Favicon - the little icon that appears in the browser tab.
+      We'll add this later if you want, but it's not required.
+    -->
+    <!-- <link rel="icon" href="%PUBLIC_URL%/favicon.ico" /> -->
+    
+    <!--
+      Tailwind CSS - We're using the CDN version for simplicity.
+      In production, you'd want to use the build process version.
+      
+      This gives you access to all of Tailwind's utility classes
+      for styling your components without writing custom CSS.
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!--
+      Configure Tailwind for dark mode and custom colors.
+      This inline script extends Tailwind's configuration.
+    -->
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: '#9333ea',
+              secondary: '#06b6d4'
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  
+  <body>
+    <!--
+      This noscript tag is shown only if JavaScript is disabled.
+      Since React requires JavaScript to work, we show a message
+      explaining that the app won't work without it.
+    -->
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    
+    <!--
+      THE MOST IMPORTANT ELEMENT IN THIS FILE!
+      
+      This div with id="root" is where your entire React application
+      will be rendered. When React starts up, it looks for an element
+      with this exact ID and mounts your App component inside it.
+      
+      Everything you see in your application - every button, every form,
+      every piece of text - will be injected into this div by React's
+      JavaScript code. Right now it's empty, but once React loads,
+      it becomes your entire application.
+      
+      Think of this as a blank canvas that React will paint on.
+    -->
+    <div id="root"></div>
+    
+    <!--
+      You don't see any <script> tags here importing your JavaScript
+      because Create React App (react-scripts) automatically injects
+      them during the build process. The build tool knows to bundle
+      all your JavaScript and insert the appropriate script tags here.
+      
+      This is part of the "magic" that Create React App provides -
+      you don't have to manually manage script tags and bundling.
+    -->
+  </body>
+</html>
