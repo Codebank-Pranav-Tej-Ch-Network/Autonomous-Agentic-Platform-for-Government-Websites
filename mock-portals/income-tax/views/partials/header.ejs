@@ -1,0 +1,53 @@
+<header class="header">
+  <!-- Top Bar -->
+  <div class="header-top">
+    <div class="container">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span>📞 Helpline: 1800-180-1961 | 📧 efilingwebmanager@incometax.gov.in</span>
+        <div>
+          <% if (user) { %>
+            <span>👤 <%= user.name %> (<%= user.pan %>) | </span>
+            <a href="/logout" style="color: white; text-decoration: underline;">Logout</a>
+          <% } else { %>
+            <a href="/login" style="color: white; text-decoration: underline;">Login</a> |
+            <a href="/register" style="color: white; text-decoration: underline;">Register</a>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Main Header -->
+  <div class="header-main">
+    <div class="container">
+      <div class="logo-section">
+        <div class="emblem">🇮🇳</div>
+        <div class="site-title">
+          <h1>Income Tax Department</h1>
+          <p>Government of India</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Navigation -->
+  <div class="nav-bar">
+    <div class="container">
+      <nav>
+        <a href="/">Home</a>
+        <% if (user) { %>
+          <a href="/dashboard">Dashboard</a>
+          <a href="/e-file">e-File</a>
+          <a href="#">e-Pay Tax</a>
+          <a href="#">View Returns / Forms</a>
+          <a href="#">Downloads</a>
+        <% } else { %>
+          <a href="/login">Login</a>
+          <a href="#">Services</a>
+          <a href="#">Downloads</a>
+          <a href="#">Help</a>
+        <% } %>
+      </nav>
+    </div>
+  </div>
+</header>
