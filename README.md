@@ -1,6 +1,5 @@
+# <u>Directory Structure: govt-automation-agent</u>
 ```markdown
-# 📂 Directory Structure: govt-automation-agent
-
 govt-automation-agent/
 │
 ├── .env.example                    # Environment variables template
