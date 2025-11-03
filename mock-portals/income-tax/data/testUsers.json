@@ -1,0 +1,20 @@
+{
+  "ABCDE1234F": {
+    "pan": "ABCDE1234F",
+    "password": "TestPassword123",
+    "name": "Rajesh Kumar",
+    "email": "rajesh.kumar@example.com",
+    "mobile": "9876543210",
+    "dateOfBirth": "1990-01-15",
+    "address": "123, MG Road, Bangalore, Karnataka - 560001"
+  },
+  "XYZAB5678C": {
+    "pan": "XYZAB5678C",
+    "password": "Demo@1234",
+    "name": "Priya Sharma",
+    "email": "priya.sharma@example.com",
+    "mobile": "9876543211",
+    "dateOfBirth": "1985-05-20",
+    "address": "456, Park Street, Mumbai, Maharashtra - 400001"
+  }
+}
