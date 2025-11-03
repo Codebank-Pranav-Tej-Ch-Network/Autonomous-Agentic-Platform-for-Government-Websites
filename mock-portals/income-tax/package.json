@@ -1,0 +1,21 @@
+{
+  "name": "mock-income-tax-portal",
+  "version": "1.0.0",
+  "description": "Mock Income Tax e-Filing portal for automation testing",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "keywords": ["income-tax", "mock-portal", "testing"],
+  "author": "IIT BTech Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "ejs": "^3.1.9",
+    "express-session": "^1.17.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
