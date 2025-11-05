@@ -1,10 +1,10 @@
 /**
  * Input Validation Middleware
- * 
+ *
  * This uses Joi (a powerful validation library) to validate request data.
  * Think of Joi as a bouncer at a club - it checks that incoming data meets
  * all the requirements before letting it through to your business logic.
- * 
+ *
  * WHY VALIDATE?
  * - Security: Prevent injection attacks, XSS, etc.
  * - Data quality: Ensure data is in expected format
@@ -17,24 +17,31 @@ const logger = require('../utils/logger');
 
 /**
  * Generic validation middleware factory
- * 
+ *
  * This is a higher-order function that creates middleware based on a schema.
  * It's like a template for creating validators for different types of requests.
- * 
+ *
  * @param {Joi.Schema} schema - Joi schema to validate against
  * @param {string} property - Which part of request to validate (body, params, query)
  * @returns {Function} Express middleware function
  */
 const validate = (schema, property = 'body') => {
   return (req, res, next) => {
+    // Pre-process the request body to handle edge cases
+    if (property === 'body' && req.body) {
+      // If conversationContext is explicitly undefined, convert to null
+      if ('conversationContext' in req.body && req.body.conversationContext === undefined) {
+        req.body.conversationContext = null;
+      }
+    }
+
     // Validate the specified property of the request
     const { error, value } = schema.validate(req[property], {
-      abortEarly: false,  // Don't stop at first error, collect all errors
-      stripUnknown: true  // Remove fields not in schema (security measure)
+      abortEarly: false,
+      stripUnknown: true
     });
 
     if (error) {
-      // Extract all error messages
       const errorMessages = error.details.map(detail => ({
         field: detail.path.join('.'),
         message: detail.message
@@ -53,7 +60,6 @@ const validate = (schema, property = 'body') => {
       });
     }
 
-    // Replace request property with validated and sanitized value
     req[property] = value;
     next();
   };
@@ -147,7 +153,10 @@ const createTaskSchema = Joi.object({
     }),
 
   conversationContext: Joi.object()
-    .optional()
+    .unknown(true)  // Allow any properties in the context object
+    .allow(null)     // Explicitly allow null
+    .optional()      // Make it truly optional
+    .default(null)   // Default to null if not provided
     .messages({
       'object.base': 'Conversation context must be an object'
     })
