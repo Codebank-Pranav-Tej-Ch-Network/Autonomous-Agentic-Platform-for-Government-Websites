@@ -1,10 +1,10 @@
 /**
  * Enhanced LLM Router Service with Database Integration
- * 
+ *
  * This service now integrates with the User model to access stored profile data,
  * making it truly intelligent about what information is available versus what
  * needs to be collected from the user through conversation.
- * 
+ *
  * The router performs several sophisticated tasks:
  * 1. Classifies user intent using Gemini AI
  * 2. Extracts parameters from natural language
@@ -22,7 +22,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
  * Task Configuration with Required and Optional Parameters
- * 
+ *
  * This defines what data each task type needs. The router uses this to know
  * what to look for in the user's profile and what to ask the user to provide.
  */
@@ -57,7 +57,7 @@ const TASK_CONFIGURATIONS = {
 
 class LLMRouter {
   constructor() {
-    this.model = genAI.getGenerativeModel({ 
+    this.model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash',
       generationConfig: {
         temperature: 0.1,  // Low temperature for consistent, deterministic responses
@@ -70,11 +70,11 @@ class LLMRouter {
 
   /**
    * Main Classification Method with User Context
-   * 
+   *
    * This is the entry point for task classification. It takes the user's message
    * and their user ID, loads their profile from the database, and uses all this
    * context to make intelligent routing decisions.
-   * 
+   *
    * @param {string} userMessage - The natural language message from the user
    * @param {string} userId - The MongoDB user ID
    * @param {Object} additionalContext - Any extra context (previous messages, etc.)
@@ -88,10 +88,10 @@ class LLMRouter {
         throw new Error('User not found');
       }
 
-      logger.info('Classifying intent for user', { 
+      logger.info('Classifying intent for user', {
         userId: user._id,
         email: user.email,
-        profileCompleteness: user.profileCompleteness 
+        profileCompleteness: user.profileCompleteness
       });
 
       // First, classify the basic intent and extract any parameters mentioned
@@ -124,37 +124,51 @@ class LLMRouter {
 
   /**
    * Basic Intent Classification using Gemini
-   * 
+   *
    * This uses the LLM to understand what the user wants to do and extract
    * any parameters they mentioned in their message. This is the first pass
    * that doesn't yet consider what's in the database.
    */
-  async classifyIntent(userMessage, additionalContext = {}) {
+async classifyIntent(userMessage, additionalContext = {}) {
     try {
       const prompt = this._buildClassificationPrompt(userMessage, additionalContext);
-      
-      logger.info('Sending classification request to Gemini', { 
+
+      logger.info('Sending classification request to Gemini', {
         messageLength: userMessage.length,
-        hasUserProfile: !!additionalContext.userProfile
+        hasUserProfile: !!additionalContext.userProfile,
+        userMessage: userMessage.substring(0, 100) // Log first 100 chars for debugging
       });
-      
+
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
-      
+
+      logger.info('Received LLM response', {
+        responseLength: text.length,
+        responsePreview: text.substring(0, 200)
+      });
+
       const classification = this._parseClassificationResponse(text);
-      
+
+      logger.info('Parsed classification', {
+        taskType: classification.taskType,
+        confidence: classification.confidence,
+        extractedParams: Object.keys(classification.extractedParams || {})
+      });
+
       return classification;
-      
+
     } catch (error) {
-      logger.error('LLM classification failed:', error);
+      logger.error('LLM classification failed:', {
+        error: error.message,
+        stack: error.stack
+      });
       throw new Error(`Failed to classify user intent: ${error.message}`);
     }
   }
-
   /**
    * Enrich Classification with Profile Data
-   * 
+   *
    * This is where the magic happens. After we know what task the user wants to perform,
    * we check their profile in the database to see what information we already have.
    * We automatically fill in profile fields and identify what's still missing.
@@ -162,7 +176,7 @@ class LLMRouter {
   async enrichWithProfileData(classification, user, originalMessage) {
     const taskType = classification.taskType;
     const config = TASK_CONFIGURATIONS[taskType];
-    
+
     if (!config) {
       throw new Error(`Unknown task type: ${taskType}`);
     }
@@ -178,7 +192,7 @@ class LLMRouter {
     // Extract profile data that this task needs
     for (const fieldPath of config.profileFields) {
       const value = this._getNestedValue(user, fieldPath);
-      
+
       if (value) {
         // Store the profile data with a clean key name
         const key = fieldPath.split('.').pop();
@@ -260,7 +274,7 @@ class LLMRouter {
 
   /**
    * Generate Context-Aware Clarification Questions
-   * 
+   *
    * When information is missing, we need to ask the user for it. But we want to be
    * smart about how we ask. Instead of asking for one field at a time, we group
    * related fields. Instead of using technical field names, we use friendly language.
@@ -295,13 +309,13 @@ class LLMRouter {
 
   /**
    * Build Classification Prompt for Gemini
-   * 
+   *
    * This constructs the detailed prompt that instructs Gemini on how to analyze
    * the user's message and return structured data about their intent.
    */
   _buildClassificationPrompt(userMessage, context) {
     const userProfile = context.userProfile || {};
-    
+
     return `You are an intelligent task classifier for a government services automation system.
 
 Your job is to analyze user requests and determine:
@@ -310,7 +324,7 @@ Your job is to analyze user requests and determine:
 3. What additional information might be needed
 
 AVAILABLE TASKS:
-${Object.entries(TASK_CONFIGURATIONS).map(([key, config]) => 
+${Object.entries(TASK_CONFIGURATIONS).map(([key, config]) =>
   `- ${key}: ${config.description}
    Dynamic parameters needed: ${config.requiredDynamicParams.join(', ')}`
 ).join('\n\n')}
@@ -388,7 +402,7 @@ Now classify the user's request:`;
 
   /**
    * Parse and Validate LLM Response
-   * 
+   *
    * Gemini returns text that should contain JSON. We need to extract and validate it.
    */
   _parseClassificationResponse(text) {
@@ -407,7 +421,7 @@ Now classify the user's request:`;
           // Fall through
         }
       }
-      
+
       // Try finding JSON object anywhere in text
       const objectMatch = text.match(/\{[\s\S]*\}/);
       if (objectMatch) {
@@ -418,7 +432,7 @@ Now classify the user's request:`;
           // Fall through
         }
       }
-      
+
       logger.error('Failed to parse LLM response:', { text });
       throw new Error('Could not parse classification response from LLM');
     }
@@ -434,19 +448,19 @@ Now classify the user's request:`;
         throw new Error(`Missing required field: ${field}`);
       }
     }
-    
+
     if (!Object.keys(TASK_CONFIGURATIONS).includes(obj.taskType)) {
       throw new Error(`Invalid task type: ${obj.taskType}`);
     }
-    
+
     if (typeof obj.confidence !== 'number' || obj.confidence < 0 || obj.confidence > 1) {
       obj.confidence = 0.5; // Default confidence
     }
-    
+
     if (typeof obj.extractedParams !== 'object' || Array.isArray(obj.extractedParams)) {
       obj.extractedParams = {};
     }
-    
+
     return obj;
   }
 
