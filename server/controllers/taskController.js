@@ -1,11 +1,11 @@
 /**
  * Task Controller - The Orchestration Layer
- * 
+ *
  * This controller is the heart of the application's task management system.
  * It handles the complete lifecycle of a task from the moment a user expresses
  * intent through natural language to the completion of the automation and delivery
  * of results.
- * 
+ *
  * The flow it manages:
  * 1. User sends natural language message
  * 2. Controller uses LLM Router to understand intent
@@ -25,11 +25,11 @@ const logger = require('../utils/logger');
 
 /**
  * Initiate Task Creation from Natural Language
- * 
+ *
  * This is the main entry point when a user sends a message. The message might be
  * a complete request with all information, or it might be partial. This method
  * handles both cases intelligently.
- * 
+ *
  * The response can be one of three types:
  * 1. "needsClarification" - More information required, includes a question
  * 2. "taskCreated" - Task successfully created and queued
@@ -37,13 +37,13 @@ const logger = require('../utils/logger');
  */
 exports.createTaskFromNaturalLanguage = async (req, res, next) => {
   try {
-    const { message, conversationContext } = req.body;
+    const { message } = req.body;
     const userId = req.user.id;
 
     logger.info('Received task creation request', {
       userId,
       messageLength: message.length,
-      hasContext: !!conversationContext
+      message: message.substring(0, 100) // Log first 100 chars
     });
 
     // Validate input
@@ -58,13 +58,14 @@ exports.createTaskFromNaturalLanguage = async (req, res, next) => {
     const classification = await llmRouter.classifyWithUserContext(
       message,
       userId,
-      { conversationContext }
+      { conversationContext: req.body.conversationContext || null }
     );
 
     logger.info('Classification completed', {
       taskType: classification.taskType,
       confidence: classification.confidence,
-      readyToExecute: classification.readyToExecute
+      readyToExecute: classification.readyToExecute,
+      missingFieldsCount: classification.missingFields?.length || 0
     });
 
     // If confidence is too low, ask user to clarify
@@ -86,12 +87,18 @@ exports.createTaskFromNaturalLanguage = async (req, res, next) => {
         question: classification.clarificationQuestion,
         missingFields: classification.missingFields,
         extractedParams: classification.extractedParams,
-        // Include a conversation ID so the frontend can track this exchange
         conversationId: generateConversationId()
       });
     }
 
     // We have everything we need - create the task
+    logger.info('Creating task with full data', {
+      userId,
+      taskType: classification.taskType,
+      profileDataKeys: Object.keys(classification.profileData || {}),
+      extractedParamsKeys: Object.keys(classification.extractedParams || {})
+    });
+
     const task = await this.createTaskWithFullData(
       userId,
       classification.taskType,
@@ -115,14 +122,16 @@ exports.createTaskFromNaturalLanguage = async (req, res, next) => {
     });
 
   } catch (error) {
-    logger.error('Error in createTaskFromNaturalLanguage:', error);
+    logger.error('Error in createTaskFromNaturalLanguage:', {
+      error: error.message,
+      stack: error.stack
+    });
     next(error);
   }
 };
-
 /**
  * Handle Clarification Response
- * 
+ *
  * When we ask the user for more information, they respond with this endpoint.
  * We take their response, combine it with the previous context, and attempt
  * to create the task again.
@@ -153,7 +162,7 @@ exports.handleClarificationResponse = async (req, res, next) => {
     const classification = await llmRouter.classifyWithUserContext(
       fullMessage,
       userId,
-      { 
+      {
         conversationContext: previousContext,
         previousExtractedParams: previousContext.extractedParams
       }
@@ -202,7 +211,7 @@ exports.handleClarificationResponse = async (req, res, next) => {
 
 /**
  * Create Task with Complete Data
- * 
+ *
  * This internal method is called once we have all the information needed to
  * create a task. It creates the MongoDB document, validates the data, adds
  * the task to the processing queue, and returns the created task.
@@ -263,7 +272,7 @@ exports.createTaskWithFullData = async (userId, taskType, inputData, req) => {
 
     } catch (queueError) {
       logger.error('Failed to add task to queue', { taskId: task._id, error: queueError });
-      
+
       // Update task status to failed
       task.status = 'failed';
       task.error = {
@@ -286,7 +295,7 @@ exports.createTaskWithFullData = async (userId, taskType, inputData, req) => {
 
 /**
  * Get All Tasks for Current User
- * 
+ *
  * Returns a paginated list of all tasks belonging to the authenticated user,
  * sorted by most recent first.
  */
@@ -296,7 +305,7 @@ exports.getAllTasks = async (req, res, next) => {
     const { page = 1, limit = 20, status } = req.query;
 
     const query = { user: userId };
-    
+
     // Filter by status if provided
     if (status) {
       query.status = status;
@@ -329,7 +338,7 @@ exports.getAllTasks = async (req, res, next) => {
 
 /**
  * Get Task by ID
- * 
+ *
  * Returns detailed information about a specific task, including its current
  * status, progress history, and results if completed.
  */
@@ -363,7 +372,7 @@ exports.getTaskById = async (req, res, next) => {
 
 /**
  * Get Task Status (Lightweight)
- * 
+ *
  * Returns just the status information for a task, useful for polling
  * or quick status checks without loading the full task data.
  */
@@ -404,7 +413,7 @@ exports.getTaskStatus = async (req, res, next) => {
 
 /**
  * Cancel Task
- * 
+ *
  * Attempts to cancel a task that is pending or queued. Once a task is
  * actively processing, it may not be cancellable depending on how far
  * along it is in the automation workflow.
@@ -471,7 +480,7 @@ exports.cancelTask = async (req, res, next) => {
 
 /**
  * Get Active Tasks
- * 
+ *
  * Returns all tasks that are currently active (pending, queued, or processing)
  * for the authenticated user. Useful for dashboard displays showing current activity.
  */
@@ -495,7 +504,7 @@ exports.getActiveTasks = async (req, res, next) => {
 
 /**
  * Retry Failed Task
- * 
+ *
  * Creates a new task with the same parameters as a failed task, allowing
  * the user to retry the operation without re-entering all information.
  */
