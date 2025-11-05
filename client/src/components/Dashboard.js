@@ -1,12 +1,12 @@
 /**
  * Enhanced Dashboard Component
- * 
+ *
  * This is the main application interface that brings together:
  * - TaskSelector for natural language task creation
  * - AgentStatus for real-time progress monitoring
  * - ResultsPanel for task history
  * - Profile completeness warnings
- * 
+ *
  * It manages the overall application state and coordinates between components.
  */
 
@@ -18,6 +18,7 @@ import AgentStatus from './AgentStatus';
 import ResultsPanel from './ResultsPanel';
 import { taskAPI, authAPI } from '../services/api';
 import websocket from '../services/websocket';
+import ProfileManagement from './ProfileManagement';
 import { toast } from 'react-toastify';
 
 export default function Dashboard() {
@@ -25,10 +26,11 @@ export default function Dashboard() {
   const [activeTask, setActiveTask] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     loadInitialData();
-    
+
     // Connect WebSocket
     const token = localStorage.getItem('authToken');
     if (token) {
@@ -50,7 +52,7 @@ export default function Dashboard() {
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      
+
       // Load user profile and tasks in parallel
       const [profileResponse, tasksResponse] = await Promise.all([
         authAPI.getProfile(),
@@ -61,7 +63,7 @@ export default function Dashboard() {
       setTasks(tasksResponse.data.data);
 
       // If there's an active task, set it
-      const activeTasks = tasksResponse.data.data.filter(t => 
+      const activeTasks = tasksResponse.data.data.filter(t =>
         ['pending', 'queued', 'processing'].includes(t.status)
       );
       if (activeTasks.length > 0) {
@@ -150,12 +152,21 @@ export default function Dashboard() {
               </h1>
               <p className="text-gray-300">Intelligent Government Services Automation</p>
             </div>
-            <div className="text-right">
-              <div className="flex items-center gap-2 text-sm mb-1">
-                <User className="w-4 h-4" />
-                <span>Profile Completeness</span>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="flex items-center gap-2 text-sm mb-1">
+                  <User className="w-4 h-4" />
+                  <span>Profile Completeness</span>
+                </div>
+                <div className="text-3xl font-bold">{userProfile?.profileCompleteness || 0}%</div>
               </div>
-              <div className="text-3xl font-bold">{userProfile?.profileCompleteness || 0}%</div>
+              <button
+                onClick={() => setShowProfileModal(true)}
+                className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+              >
+                <User className="w-5 h-5" />
+                Profile
+              </button>
             </div>
           </div>
         </motion.div>
@@ -187,30 +198,30 @@ export default function Dashboard() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <StatCard 
-            icon={<Activity />} 
-            label="Total Tasks" 
+          <StatCard
+            icon={<Activity />}
+            label="Total Tasks"
             value={stats.total}
             color="blue"
           />
-          <StatCard 
-            icon={<Clock />} 
-            label="Active Tasks" 
+          <StatCard
+            icon={<Clock />}
+            label="Active Tasks"
             value={stats.active}
             color="yellow"
           />
-          <StatCard 
-            icon={<CheckCircle />} 
-            label="Completed" 
+          <StatCard
+            icon={<CheckCircle />}
+            label="Completed"
             value={stats.completed}
             color="green"
           />
-          <StatCard 
-            icon={<XCircle />} 
-            label="Failed" 
+          <StatCard
+            icon={<XCircle />}
+            label="Failed"
             value={stats.failed}
             color="red"
-          />
+          Next />
         </div>
 
         {/* Main Content */}
@@ -232,12 +243,25 @@ export default function Dashboard() {
 
         {/* Task History */}
         <div>
-          <ResultsPanel 
-            tasks={tasks} 
+          <ResultsPanel
+            tasks={tasks}
             onViewTask={handleViewTask}
             onRetryTask={handleRetryTask}
           />
         </div>
+
+        {/* Profile Management Modal */}
+        <ProfileManagement
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          onLogout={() => {
+            setShowProfileModal(false);
+            window.location.href = '/';
+          }}
+          onProfileUpdated={() => {
+            loadInitialData();
+          }}
+        />
       </div>
     </div>
   );
