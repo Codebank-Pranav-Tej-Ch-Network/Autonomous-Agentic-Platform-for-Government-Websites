@@ -1,9 +1,9 @@
 /**
  * WebSocket Service
- * 
+ *
  * This sets up Socket.IO for real-time, bidirectional communication
  * between the server and connected clients.
- * 
+ *
  * Why WebSockets?
  * Traditional HTTP is like sending letters - you send a request, wait for response.
  * WebSockets are like a phone call - constant two-way communication channel.
@@ -15,7 +15,7 @@ const jwt = require('jsonwebtoken');
 
 /**
  * Setup WebSocket server with Socket.IO
- * 
+ *
  * @param {SocketIO.Server} io - The Socket.IO server instance
  */
 function setupWebSocket(io) {
@@ -23,53 +23,53 @@ function setupWebSocket(io) {
   // Before accepting a connection, verify the user has a valid JWT token
   io.use((socket, next) => {
     const token = socket.handshake.auth.token;
-    
+
     if (!token) {
       return next(new Error('Authentication token required'));
     }
-    
+
     try {
       // Verify the JWT token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
+
       // Attach user info to socket for later use
       socket.userId = decoded.id;
       socket.userEmail = decoded.email;
-      
+
       next();
     } catch (error) {
       logger.error('WebSocket authentication failed:', error);
       next(new Error('Invalid token'));
     }
   });
-  
+
   // Handle new connections
   io.on('connection', (socket) => {
     logger.info(`WebSocket client connected: ${socket.id}`, {
       userId: socket.userId,
       email: socket.userEmail
     });
-    
+
     // Join a room specific to this user
     // This allows us to send messages only to specific users
     socket.join(`user:${socket.userId}`);
-    
+
     // Send welcome message
     socket.emit('connected', {
       message: 'Successfully connected to WebSocket server',
       socketId: socket.id
     });
-    
+
     // Handle client disconnection
     socket.on('disconnect', (reason) => {
       logger.info(`WebSocket client disconnected: ${socket.id}`, { reason });
     });
-    
+
     // Handle errors
     socket.on('error', (error) => {
       logger.error('WebSocket error:', error);
     });
-    
+
     // You can add custom event handlers here
     // For example, if frontend wants to request task status:
     socket.on('request:task:status', async (data) => {
@@ -81,18 +81,38 @@ function setupWebSocket(io) {
         socket.emit('error', { message: error.message });
       }
     });
+
+    // Handle user providing input for automation
+    socket.on('task:provide_input', async (data) => {
+      try {
+        logger.info('Received user input', {
+          taskId: data.taskId,
+          inputType: data.inputType,
+          userId: socket.userId
+        });
+        // Emit the input to the queue manager/automation system
+        // The automation script should be listening for this
+        global.io.to(`task:${data.taskId}`).emit('user_input', {
+          inputType: data.inputType,
+          value: data.value
+        });
+      } catch (error) {
+        logger.error('Error handling user input:', error);
+        socket.emit('error', { message: 'Failed to process input' });
+      }
+    });
   });
-  
+
   // Store io instance globally so other parts of the app can emit events
   global.io = io;
-  
+
   logger.info('WebSocket server initialized');
 }
 
 /**
  * Helper function to emit progress updates to a specific user
  * This can be called from anywhere in the application
- * 
+ *
  * @param {string} userId - The user ID to send to
  * @param {object} data - The progress data to send
  */
@@ -120,9 +140,19 @@ function emitTaskFailed(userId, data) {
   }
 }
 
+/**
+ * Helper function to emit input request to user
+ */
+function emitNeedsInput(userId, data) {
+  if (global.io) {
+    global.io.to(`user:${userId}`).emit('task:needs_input', data);
+  }
+}
+
 module.exports = {
   setupWebSocket,
   emitTaskProgress,
   emitTaskCompleted,
-  emitTaskFailed
+  emitTaskFailed,
+  emitNeedsInput // Add this export
 };
