@@ -1,11 +1,11 @@
 /**
  * TaskSelector Component
- * 
+ *
  * This is the primary interface where users interact with the AI agent.
  * It provides a conversational interface where users can describe what they
  * want to do in natural language, and the system intelligently responds,
  * asks clarifying questions, and eventually creates tasks.
- * 
+ *
  * The component handles:
  * - Natural language input from users
  * - Displaying LLM-generated clarification questions
@@ -46,42 +46,43 @@ export default function TaskSelector({ onTaskCreated }) {
 
   /**
    * Handle sending a message to the backend
-   * 
+   *
    * This can be either an initial request or a response to a clarification question.
    */
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!message.trim()) return;
+const handleSendMessage = async (e) => {
+  e.preventDefault();
+  if (!message.trim()) return;
 
-    const userMessage = message.trim();
-    setMessage('');
-    setError(null);
-    setLoading(true);
+  const userMessage = message.trim();
+  setMessage('');
+  setError(null);
+  setLoading(true);
 
-    // Add user message to conversation history
-    setConversation(prev => [...prev, {
-      type: 'user',
-      content: userMessage,
-      timestamp: new Date()
-    }]);
+  // Add user message to conversation history
+  setConversation(prev => [...prev, {
+    type: 'user',
+    content: userMessage,
+    timestamp: new Date()
+  }]);
 
-    try {
-      let response;
+  try {
+    let response;
 
-      if (conversationContext?.conversationId) {
-        // This is a clarification response
-        response = await taskAPI.clarify({
-          conversationId: conversationContext.conversationId,
-          response: userMessage,
-          previousContext: conversationContext
-        });
-      } else {
-        // This is a new task request
-        response = await taskAPI.create({
-          message: userMessage,
-          conversationContext: conversationContext
-        });
-      }
+    if (conversationContext?.conversationId) {
+      // This is a clarification response
+      response = await taskAPI.clarify({
+        conversationId: conversationContext.conversationId,
+        response: userMessage,
+        previousContext: conversationContext
+      });
+    } else {
+      // This is a new task request
+      // Ensure we're sending the correct structure
+      response = await taskAPI.create({
+        message: userMessage,
+        conversationContext: conversationContext || null  // Explicitly send null if undefined
+      });
+    }
 
       const data = response.data;
 
@@ -125,7 +126,7 @@ export default function TaskSelector({ onTaskCreated }) {
     } catch (err) {
       console.error('Error sending message:', err);
       setError(err.response?.data?.message || 'Failed to process your request. Please try again.');
-      
+
       setConversation(prev => [...prev, {
         type: 'error',
         content: err.response?.data?.message || 'Something went wrong. Please try again.',
@@ -196,7 +197,7 @@ export default function TaskSelector({ onTaskCreated }) {
               <p className="text-gray-600 mb-6">
                 Describe what you'd like to do in natural language, or choose from these examples:
               </p>
-              
+
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-gray-700 text-left">Income Tax Filing:</p>
                 {EXAMPLE_PROMPTS.itr_filing.map((example, idx) => (
@@ -259,7 +260,7 @@ export default function TaskSelector({ onTaskCreated }) {
                       <span className="text-xs font-semibold uppercase">Need More Info</span>
                     </div>
                   )}
-                  
+
                   {msg.type === 'assistant' && msg.taskCreated && (
                     <div className="flex items-center gap-2 mb-2 text-green-600">
                       <Sparkles className="w-4 h-4" />
@@ -268,7 +269,7 @@ export default function TaskSelector({ onTaskCreated }) {
                   )}
 
                   <div className="whitespace-pre-wrap">{msg.content}</div>
-                  
+
                   <div className={`text-xs mt-2 ${
                     msg.type === 'user' ? 'text-purple-200' : 'text-gray-400'
                   }`}>
@@ -303,7 +304,7 @@ export default function TaskSelector({ onTaskCreated }) {
             {error}
           </div>
         )}
-        
+
         <div className="flex gap-2">
           <input
             id="message-input"
