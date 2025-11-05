@@ -1,6 +1,6 @@
 /**
  * Authentication Component
- * 
+ *
  * Provides login and registration forms for users to access the system.
  */
 
@@ -45,12 +45,12 @@ export default function Auth({ onAuthenticated }) {
       }
 
       const { accessToken, user } = response.data.data;
-      
+
       // Store token
       localStorage.setItem('authToken', accessToken);
-      
+
       toast.success(isLogin ? 'Login successful!' : 'Account created successfully!');
-      
+
       // Notify parent component
       if (onAuthenticated) {
         onAuthenticated(user);
