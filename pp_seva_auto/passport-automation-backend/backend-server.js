@@ -46,7 +46,7 @@ async function callGeminiAI(prompt) {
         throw new Error('Gemini API key not configured on server');
     }
 
-    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+    const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
     
     try {
         const fetch = (await import('node-fetch')).default;
