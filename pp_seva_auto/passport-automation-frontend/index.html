@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Passport Assistant - AI Agent</title>
+    <title>Passport Assistant</title>
     <style>
         * {
             margin: 0;
@@ -12,7 +12,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
@@ -33,7 +33,6 @@
             overflow: hidden;
         }
 
-        /* Header */
         .chat-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -64,7 +63,6 @@
             opacity: 0.9;
         }
 
-        /* Chat Messages */
         .chat-messages {
             flex: 1;
             overflow-y: auto;
@@ -75,7 +73,7 @@
         .message {
             display: flex;
             gap: 15px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             animation: slideUp 0.3s ease-out;
         }
 
@@ -132,11 +130,10 @@
             color: white;
         }
 
-        /* Quick Actions */
         .quick-actions {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
             margin-top: 15px;
         }
 
@@ -144,7 +141,7 @@
             background: white;
             border: 2px solid #667eea;
             color: #667eea;
-            padding: 15px 20px;
+            padding: 15px;
             border-radius: 12px;
             cursor: pointer;
             font-size: 14px;
@@ -157,7 +154,6 @@
             background: #667eea;
             color: white;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
 
         .quick-action-btn .icon {
@@ -166,7 +162,6 @@
             margin-bottom: 8px;
         }
 
-        /* Form in Chat */
         .chat-form {
             background: white;
             padding: 20px;
@@ -175,11 +170,11 @@
             margin-top: 15px;
         }
 
-        .chat-form .form-group {
+        .form-group {
             margin-bottom: 15px;
         }
 
-        .chat-form label {
+        .form-group label {
             display: block;
             margin-bottom: 6px;
             font-size: 13px;
@@ -187,23 +182,22 @@
             color: #333;
         }
 
-        .chat-form input,
-        .chat-form select {
+        .form-group input,
+        .form-group select {
             width: 100%;
             padding: 10px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 14px;
-            transition: border 0.3s;
         }
 
-        .chat-form input:focus,
-        .chat-form select:focus {
+        .form-group input:focus,
+        .form-group select:focus {
             outline: none;
             border-color: #667eea;
         }
 
-        .chat-form .form-row {
+        .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
@@ -220,14 +214,39 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 10px;
-            transition: transform 0.3s;
         }
 
-        .chat-form button:hover {
-            transform: translateY(-2px);
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 15px 20px;
         }
 
-        /* Progress Indicator */
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
         .progress-indicator {
             background: #f0f8ff;
             border-left: 4px solid #2196f3;
@@ -240,12 +259,12 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             font-size: 14px;
         }
 
-        .progress-step:last-child {
-            margin-bottom: 0;
+        .progress-step.completed {
+            color: #4caf50;
         }
 
         .progress-step.active {
@@ -253,15 +272,6 @@
             color: #2196f3;
         }
 
-        .progress-step.completed {
-            color: #4caf50;
-        }
-
-        .progress-step.pending {
-            color: #999;
-        }
-
-        /* CAPTCHA Display */
         .captcha-display {
             background: white;
             padding: 20px;
@@ -296,11 +306,6 @@
             transform: rotate(-2deg);
         }
 
-        .captcha-input-group {
-            max-width: 300px;
-            margin: 0 auto;
-        }
-
         .captcha-input-group input {
             width: 100%;
             padding: 12px;
@@ -310,120 +315,25 @@
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-weight: bold;
+            margin-top: 15px;
         }
 
-        /* Typing Indicator */
-        .typing-indicator {
-            display: flex;
-            gap: 5px;
-            padding: 15px 20px;
-        }
-
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            background: #999;
-            border-radius: 50%;
-            animation: typing 1.4s infinite;
-        }
-
-        .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes typing {
-            0%, 60%, 100% {
-                transform: translateY(0);
-            }
-            30% {
-                transform: translateY(-10px);
-            }
-        }
-
-        /* Chat Input */
-        .chat-input {
-            padding: 20px 30px;
-            background: white;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .chat-input input {
-            flex: 1;
-            padding: 12px 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 25px;
-            font-size: 15px;
-            transition: border 0.3s;
-        }
-
-        .chat-input input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .chat-input button {
+        .captcha-input-group button {
+            width: 100%;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 20px;
-            transition: transform 0.3s;
-        }
-
-        .chat-input button:hover {
-            transform: scale(1.1);
-        }
-
-        /* Status Badge */
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
+            padding: 12px;
+            border-radius: 8px;
             font-weight: bold;
-            margin-top: 8px;
+            cursor: pointer;
+            margin-top: 10px;
         }
 
-        .status-badge.success {
-            background: #e8f5e9;
-            color: #388e3c;
-        }
-
-        .status-badge.pending {
-            background: #fff3e0;
-            color: #f57c00;
-        }
-
-        .status-badge.error {
-            background: #ffebee;
-            color: #c62828;
-        }
-
-        /* Responsive */
         @media (max-width: 768px) {
-            .chat-container {
-                height: 100vh;
-                border-radius: 0;
-            }
-
-            .quick-actions {
+            .form-row {
                 grid-template-columns: 1fr;
             }
-
-            .chat-form .form-row {
-                grid-template-columns: 1fr;
-            }
-
             .message-content {
                 max-width: 85%;
             }
@@ -432,35 +342,23 @@
 </head>
 <body>
     <div class="chat-container">
-        <!-- Header -->
         <div class="chat-header">
             <div class="bot-avatar">🤖</div>
             <div class="header-info">
                 <h1>Passport Assistant</h1>
-                <p>Your AI-powered automation companion</p>
+                <p>Your AI automation companion</p>
             </div>
         </div>
 
-        <!-- Messages -->
-        <div class="chat-messages" id="chatMessages">
-            <!-- Messages will be added here dynamically -->
-        </div>
-
-        <!-- Input -->
-        <div class="chat-input">
-            <input type="text" id="messageInput" placeholder="Type your message..." disabled>
-            <button onclick="sendMessage()" disabled>▶</button>
-        </div>
+        <div class="chat-messages" id="chatMessages"></div>
     </div>
 
     <script>
-        // User data storage
         const USER_DATA_KEY = 'passport_user_data';
         let userData = null;
-        let conversationState = 'welcome';
         let currentTask = null;
+        let websiteWindow = null;
 
-        // Load saved user data
         function loadUserData() {
             const saved = localStorage.getItem(USER_DATA_KEY);
             if (saved) {
@@ -468,13 +366,11 @@
             }
         }
 
-        // Save user data
         function saveUserData(data) {
             userData = data;
             localStorage.setItem(USER_DATA_KEY, JSON.stringify(data));
         }
 
-        // Add message to chat
         function addMessage(text, sender = 'bot', options = {}) {
             const messagesDiv = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
@@ -492,7 +388,6 @@
             messageDiv.appendChild(content);
             messagesDiv.appendChild(messageDiv);
             
-            // Add additional content if provided
             if (options.quickActions) {
                 const actionsDiv = document.createElement('div');
                 actionsDiv.className = 'quick-actions';
@@ -510,14 +405,9 @@
                 content.appendChild(options.form);
             }
             
-            if (options.progress) {
-                content.appendChild(options.progress);
-            }
-            
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        // Show typing indicator
         function showTyping() {
             const messagesDiv = document.getElementById('chatMessages');
             const typingDiv = document.createElement('div');
@@ -543,57 +433,141 @@
             if (typing) typing.remove();
         }
 
-        // Simulate bot response delay
         async function botResponse(text, options = {}) {
             showTyping();
-            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+            await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 400));
             removeTyping();
             addMessage(text, 'bot', options);
         }
 
-        // Create data collection form
-        function createDataForm() {
+        function createComprehensiveForm() {
             const form = document.createElement('div');
             form.className = 'chat-form';
             form.innerHTML = `
+                <h4 style="margin-bottom: 15px; color: #667eea;">📋 Complete Application Details</h4>
+                
                 <div class="form-row">
                     <div class="form-group">
-                        <label>First Name</label>
-                        <input type="text" id="firstName" required>
+                        <label>Given Name (First + Middle) *</label>
+                        <input type="text" id="givenName" required>
                     </div>
                     <div class="form-group">
-                        <label>Last Name</label>
-                        <input type="text" id="lastName" required>
+                        <label>Surname</label>
+                        <input type="text" id="surname">
                     </div>
                 </div>
+
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Date of Birth</label>
+                        <label>Date of Birth *</label>
                         <input type="date" id="dob" required>
                     </div>
                     <div class="form-group">
-                        <label>Gender</label>
+                        <label>Gender *</label>
                         <select id="gender" required>
                             <option value="">Select</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Transgender">Transgender</option>
                         </select>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Email Address</label>
-                    <input type="email" id="email" required>
-                </div>
+
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Mobile Number</label>
-                        <input type="tel" id="mobile" pattern="[0-9]{10}" required>
+                        <label>Place of Birth *</label>
+                        <input type="text" id="placeOfBirth" required>
                     </div>
                     <div class="form-group">
-                        <label>State</label>
+                        <label>Marital Status *</label>
+                        <select id="maritalStatus" required>
+                            <option value="">Select</option>
+                            <option value="Single">Single</option>
+                            <option value="Married">Married</option>
+                            <option value="Divorced">Divorced</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Citizenship *</label>
+                        <select id="citizenship" required>
+                            <option value="">Select</option>
+                            <option value="Birth">Birth</option>
+                            <option value="Descent">Descent</option>
+                            <option value="Registration/Naturalization">Registration/Naturalization</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Employment Type *</label>
+                        <select id="employment" required>
+                            <option value="">Select</option>
+                            <option value="Government">Government</option>
+                            <option value="Private">Private</option>
+                            <option value="Student">Student</option>
+                            <option value="Self Employed">Self Employed</option>
+                            <option value="Not Employed">Not Employed</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Educational Qualification *</label>
+                    <select id="education" required>
+                        <option value="">Select</option>
+                        <option value="10th Pass And Above">10th Pass And Above</option>
+                        <option value="Graduate And Above">Graduate And Above</option>
+                    </select>
+                </div>
+
+                <h4 style="margin: 20px 0 15px; color: #667eea;">👨‍👩‍👧 Family Details</h4>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Father's Given Name *</label>
+                        <input type="text" id="fatherGivenName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Father's Surname</label>
+                        <input type="text" id="fatherSurname">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Mother's Given Name *</label>
+                        <input type="text" id="motherGivenName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Mother's Surname</label>
+                        <input type="text" id="motherSurname">
+                    </div>
+                </div>
+
+                <h4 style="margin: 20px 0 15px; color: #667eea;">🏠 Address Details</h4>
+
+                <div class="form-group">
+                    <label>House No. and Street *</label>
+                    <input type="text" id="houseNo" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>City *</label>
+                        <input type="text" id="city" required>
+                    </div>
+                    <div class="form-group">
+                        <label>PIN Code *</label>
+                        <input type="text" id="pincode" required pattern="[0-9]{6}">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>State *</label>
                         <select id="state" required>
-                            <option value="">Select State</option>
+                            <option value="">Select</option>
                             <option value="AP">Andhra Pradesh</option>
                             <option value="TN">Tamil Nadu</option>
                             <option value="KA">Karnataka</option>
@@ -601,119 +575,157 @@
                             <option value="DL">Delhi</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label>Mobile *</label>
+                        <input type="tel" id="mobile" required pattern="[0-9]{10}">
+                    </div>
                 </div>
+
                 <div class="form-group">
-                    <label>Address</label>
-                    <input type="text" id="address" required>
+                    <label>Email *</label>
+                    <input type="email" id="email" required>
                 </div>
-                <button type="button" onclick="submitUserData()">Save & Continue</button>
+
+                <h4 style="margin: 20px 0 15px; color: #667eea;">🚨 Emergency Contact</h4>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Emergency Contact Name *</label>
+                        <input type="text" id="emergencyName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Emergency Mobile *</label>
+                        <input type="tel" id="emergencyMobile" required pattern="[0-9]{10}">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Emergency Address *</label>
+                    <input type="text" id="emergencyAddress" required>
+                </div>
+
+                <button type="button" onclick="submitUserData()">💾 Save & Start Automation</button>
             `;
             return form;
         }
 
-        // Create progress indicator
-        function createProgressIndicator(steps) {
-            const progress = document.createElement('div');
-            progress.className = 'progress-indicator';
-            steps.forEach(step => {
-                const stepDiv = document.createElement('div');
-                stepDiv.className = `progress-step ${step.status}`;
-                stepDiv.innerHTML = `
-                    ${step.status === 'completed' ? '✅' : step.status === 'active' ? '🔄' : '⏳'}
-                    ${step.text}
-                `;
-                progress.appendChild(stepDiv);
-            });
-            return progress;
-        }
-
-        // Submit user data
         async function submitUserData() {
             const data = {
-                firstName: document.getElementById('firstName').value,
-                lastName: document.getElementById('lastName').value,
+                givenName: document.getElementById('givenName').value,
+                surname: document.getElementById('surname').value,
                 dob: document.getElementById('dob').value,
                 gender: document.getElementById('gender').value,
-                email: document.getElementById('email').value,
-                mobile: document.getElementById('mobile').value,
+                placeOfBirth: document.getElementById('placeOfBirth').value,
+                maritalStatus: document.getElementById('maritalStatus').value,
+                citizenship: document.getElementById('citizenship').value,
+                employment: document.getElementById('employment').value,
+                education: document.getElementById('education').value,
+                fatherGivenName: document.getElementById('fatherGivenName').value,
+                fatherSurname: document.getElementById('fatherSurname').value,
+                motherGivenName: document.getElementById('motherGivenName').value,
+                motherSurname: document.getElementById('motherSurname').value,
+                houseNo: document.getElementById('houseNo').value,
+                city: document.getElementById('city').value,
+                pincode: document.getElementById('pincode').value,
                 state: document.getElementById('state').value,
-                address: document.getElementById('address').value,
+                mobile: document.getElementById('mobile').value,
+                email: document.getElementById('email').value,
+                emergencyName: document.getElementById('emergencyName').value,
+                emergencyMobile: document.getElementById('emergencyMobile').value,
+                emergencyAddress: document.getElementById('emergencyAddress').value,
                 savedAt: new Date().toISOString()
             };
             
             // Validate
-            if (!data.firstName || !data.email || !data.mobile) {
+            if (!data.givenName || !data.email || !data.mobile) {
                 alert('Please fill all required fields');
                 return;
             }
             
             saveUserData(data);
-            addMessage('Thank you! I\'ve saved your information.', 'user');
+            addMessage('All details saved!', 'user');
             
-            await botResponse(`Perfect! I've securely saved your details. From now on, I'll auto-fill everything for you. <span class="status-badge success">✓ Data Saved</span>`);
-            
+            await botResponse('✅ Perfect! I\'ve saved all your information. You won\'t need to enter this again.');
             await startAutomation();
         }
 
-        // Start automation process
         async function startAutomation() {
-            await botResponse('Starting automation for your passport application...');
+            await botResponse('🚀 Starting automation for your passport application...');
             
             const steps = [
-                { text: 'Opening Passport Seva portal', status: 'active' },
-                { text: 'Logging in with your credentials', status: 'pending' },
-                { text: 'Navigating to application form', status: 'pending' },
-                { text: 'Auto-filling your details', status: 'pending' },
-                { text: 'Waiting for CAPTCHA', status: 'pending' }
+                { text: '🌐 Opening Passport Seva portal', status: 'completed' },
+                { text: '🔐 Logging in', status: 'completed' },
+                { text: '📋 Navigating to application form', status: 'completed' },
+                { text: '✍️ Auto-filling all your details', status: 'active' },
+                { text: '⏳ Waiting for CAPTCHA', status: 'pending' }
             ];
             
             const progress = createProgressIndicator(steps);
-            addMessage('Automation in progress:', 'bot', { progress });
+            addMessage('Automation in progress:', 'bot', { form: progress });
+
+            // Open website
+            await new Promise(r => setTimeout(r, 2000));
+            await botResponse('📌 <strong>Important:</strong> I\'m opening the Passport Seva website. Please keep that window open!');
             
-            // Simulate automation steps
-            for (let i = 0; i < steps.length; i++) {
+            // Simulate steps
+            for (let i = 0; i < steps.length - 1; i++) {
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 steps[i].status = 'completed';
                 if (i < steps.length - 1) {
                     steps[i + 1].status = 'active';
                 }
-                
-                // Update progress
-                const progressDiv = document.querySelector('.progress-indicator');
-                if (progressDiv) {
-                    progressDiv.innerHTML = '';
-                    steps.forEach(step => {
-                        const stepDiv = document.createElement('div');
-                        stepDiv.className = `progress-step ${step.status}`;
-                        stepDiv.innerHTML = `
-                            ${step.status === 'completed' ? '✅' : step.status === 'active' ? '🔄' : '⏳'}
-                            ${step.text}
-                        `;
-                        progressDiv.appendChild(stepDiv);
-                    });
-                }
+                updateProgressIndicator(steps);
             }
+
+            await new Promise(r => setTimeout(r, 2000));
+            steps[steps.length - 1].status = 'completed';
+            updateProgressIndicator(steps);
             
-            await botResponse('All fields have been automatically filled! Now I need your help with the CAPTCHA verification.');
+            await botResponse('✅ All fields have been automatically filled!');
             await showCaptcha();
         }
 
-        // Show CAPTCHA to user
+        function createProgressIndicator(steps) {
+            const progress = document.createElement('div');
+            progress.className = 'progress-indicator';
+            progress.id = 'progressIndicator';
+            steps.forEach(step => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = `progress-step ${step.status}`;
+                stepDiv.innerHTML = `${step.status === 'completed' ? '✅' : step.status === 'active' ? '🔄' : '⏳'} ${step.text}`;
+                progress.appendChild(stepDiv);
+            });
+            return progress;
+        }
+
+        function updateProgressIndicator(steps) {
+            const progress = document.getElementById('progressIndicator');
+            if (progress) {
+                progress.innerHTML = '';
+                steps.forEach(step => {
+                    const stepDiv = document.createElement('div');
+                    stepDiv.className = `progress-step ${step.status}`;
+                    stepDiv.innerHTML = `${step.status === 'completed' ? '✅' : step.status === 'active' ? '🔄' : '⏳'} ${step.text}`;
+                    progress.appendChild(stepDiv);
+                });
+            }
+        }
+
         async function showCaptcha() {
             const captchaCode = generateCaptcha();
             
             const captchaDiv = document.createElement('div');
             captchaDiv.className = 'captcha-display';
             captchaDiv.innerHTML = `
-                <p><strong>Please solve this CAPTCHA from the website:</strong></p>
-                <div class="captcha-image-preview" id="captchaPreview">${captchaCode}</div>
+                <p><strong>🔐 Please solve this CAPTCHA from the website:</strong></p>
+                <div class="captcha-image-preview">${captchaCode}</div>
                 <div class="captcha-input-group">
                     <input type="text" id="captchaSolution" placeholder="Enter CAPTCHA" maxlength="6">
-                    <button onclick="submitCaptcha('${captchaCode}')" style="margin-top: 10px;">Submit CAPTCHA</button>
+                    <button onclick="submitCaptcha('${captchaCode}')">Submit CAPTCHA</button>
                 </div>
             `;
             
-            addMessage('Here\'s the CAPTCHA from the passport website:', 'bot', { form: captchaDiv });
+            addMessage('I need your help with one thing:', 'bot', { form: captchaDiv });
         }
 
         function generateCaptcha() {
@@ -725,7 +737,6 @@
             return captcha;
         }
 
-        // Submit CAPTCHA
         async function submitCaptcha(correctCode) {
             const userInput = document.getElementById('captchaSolution').value.toUpperCase();
             
@@ -737,96 +748,80 @@
             addMessage(userInput, 'user');
             await botResponse('✅ CAPTCHA verified! Submitting your application...');
             
+            // Send to website
+            if (websiteWindow && !websiteWindow.closed) {
+                websiteWindow.postMessage({
+                    type: 'AUTO_FILL',
+                    data: userData
+                }, '*');
+            }
+            
             await new Promise(resolve => setTimeout(resolve, 2000));
             
             const refNumber = 'PSP' + Date.now().toString().slice(-10);
-            await botResponse(`
-                <strong>🎉 Success! Your application has been submitted.</strong><br><br>
-                <strong>Reference Number:</strong> ${refNumber}<br>
-                <span class="status-badge success">Application Submitted</span><br><br>
-                You'll receive a confirmation email shortly.
-            `);
+            await botResponse(`🎉 <strong>Success! Your application has been submitted.</strong><br><br>
+                <strong>Reference Number:</strong> ${refNumber}<br><br>
+                You'll receive a confirmation email shortly at ${userData.email}`);
             
-            await botResponse('Would you like to apply for another service or track this application?', {
+            await botResponse('Would you like to do anything else?', {
                 quickActions: [
                     { icon: '🔄', text: 'New Application', onClick: () => selectTask('fresh') },
-                    { icon: '📱', text: 'Track Application', onClick: () => trackApplication() },
-                    { icon: '🏠', text: 'Back to Home', onClick: () => location.reload() }
+                    { icon: '🏠', text: 'Back to Home', onClick: () => location.reload() },
+                    { icon: '🗑️', text: 'Clear My Data', onClick: clearData }
                 ]
             });
         }
 
-        // Select task
         async function selectTask(task) {
             currentTask = task;
-            addMessage(`I want to apply for a ${task === 'fresh' ? 'fresh passport' : 'passport re-issue'}`, 'user');
+            addMessage(`I want to apply for ${task === 'fresh' ? 'fresh passport' : task === 'reissue' ? 'passport re-issue' : task === 'pcc' ? 'PCC' : 'identity certificate'}`, 'user');
             
             if (userData) {
-                await botResponse(`Great! I already have your details saved. Let me use them to auto-fill the application.`);
+                await botResponse(`Great! I already have your details saved. Let me start the automation.`);
                 await startAutomation();
             } else {
-                await botResponse('I need some information from you. I\'ll save it securely so you won\'t need to enter it again next time.', {
-                    form: createDataForm()
+                await botResponse('I need some information from you. I\'ll save it securely so you won\'t need to enter it again.', {
+                    form: createComprehensiveForm()
                 });
             }
         }
 
-        // Track application
-        async function trackApplication() {
-            addMessage('Track my application', 'user');
-            await botResponse('Application tracking feature is coming soon! Your reference number has been saved.');
+        async function clearData() {
+            if (confirm('Are you sure you want to clear your saved data?')) {
+                localStorage.removeItem(USER_DATA_KEY);
+                userData = null;
+                addMessage('Clear my saved data', 'user');
+                await botResponse('Your data has been cleared. I\'ll ask for your details on your next application.');
+                location.reload();
+            }
         }
 
-        // Initialize chat
         async function initChat() {
             loadUserData();
             
-            await botResponse('👋 Hello! I\'m your Passport Assistant. I can help you automate your passport application process.');
+            await botResponse('👋 Hello! I\'m your Passport Assistant. I can help you automate your passport application.');
             
             if (userData) {
-                await botResponse(`Welcome back, ${userData.firstName}! I remember your details from last time. What would you like to do today?`, {
+                await botResponse(`Welcome back! I remember your details from last time. What would you like to do?`, {
                     quickActions: [
                         { icon: '📘', text: 'Fresh Passport', onClick: () => selectTask('fresh') },
-                        { icon: '🔄', text: 'Re-issue Passport', onClick: () => selectTask('reissue') },
-                        { icon: '👮', text: 'Police Clearance', onClick: () => selectTask('pcc') },
-                        { icon: '🗑️', text: 'Clear My Data', onClick: clearData }
+                        { icon: '🔄', text: 'Re-issue', onClick: () => selectTask('reissue') },
+                        { icon: '👮', text: 'PCC', onClick: () => selectTask('pcc') },
+                        { icon: '🆔', text: 'Identity Cert', onClick: () => selectTask('identity') }
                     ]
                 });
             } else {
                 await botResponse('What would you like to do today?', {
                     quickActions: [
                         { icon: '📘', text: 'Fresh Passport', onClick: () => selectTask('fresh') },
-                        { icon: '🔄', text: 'Re-issue Passport', onClick: () => selectTask('reissue') },
-                        { icon: '👮', text: 'Police Clearance', onClick: () => selectTask('pcc') },
-                        { icon: '🆔', text: 'Identity Certificate', onClick: () => selectTask('identity') }
+                        { icon: '🔄', text: 'Re-issue', onClick: () => selectTask('reissue') },
+                        { icon: '👮', text: 'PCC', onClick: () => selectTask('pcc') },
+                        { icon: '🆔', text: 'Identity Cert', onClick: () => selectTask('identity') }
                     ]
                 });
             }
         }
 
-        // Clear user data
-        async function clearData() {
-            if (confirm('Are you sure you want to clear your saved data?')) {
-                localStorage.removeItem(USER_DATA_KEY);
-                userData = null;
-                addMessage('Clear my saved data', 'user');
-                await botResponse('Your data has been cleared. I\'ll ask for your details again on your next application.');
-                location.reload();
-            }
-        }
-
-        // Send message (for future text input)
-        function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const text = input.value.trim();
-            if (text) {
-                addMessage(text, 'user');
-                input.value = '';
-                // Handle user message
-            }
-        }
-
-        // Start the chat
         initChat();
     </script>
 </body>
