@@ -1,0 +1,79 @@
+/* This file contains all the CUSTOM CSS.
+  The Tailwind utility classes are still in index.html,
+  and are loaded via the Tailwind CDN <script> tag.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f3f4f6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.main-content-area {
+    flex-grow: 1;
+}
+
+.text-gradient {
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    background-image: linear-gradient(to right, #3b82f6, #14b8a6);
+}
+
+.tab-btn {
+    @apply flex-1 py-3 px-4 text-center font-medium text-gray-400 border-b-2 border-transparent transition-all duration-200;
+}
+
+.tab-btn:hover {
+    @apply text-gray-200;
+}
+
+.tab-btn.active {
+    @apply text-blue-400 border-blue-400;
+}
+
+.dropdown-menu {
+    @apply hidden absolute bg-white text-gray-700 shadow-lg rounded-md mt-1 py-2 z-20;
+}
+
+.dropdown-menu a, .dropdown-menu button {
+    @apply block w-full text-left px-4 py-2 text-sm hover:bg-gray-100;
+}
+
+.carousel-item {
+    @apply absolute inset-0 transition-opacity duration-1000 ease-in-out opacity-0;
+}
+
+.carousel-item.active {
+    @apply opacity-100;
+}
+
+.marquee {
+    @apply w-full overflow-hidden bg-white;
+}
+
+.marquee-content {
+    @apply flex py-2;
+    animation: marquee 30s linear infinite;
+}
+
+.marquee-item {
+    @apply flex-shrink-0 px-6 text-sm font-medium text-blue-700;
+}
+
+@keyframes marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+.modal-content-wrapper {
+    @apply relative bg-gray-800 shadow-2xl rounded-2xl p-8 w-full max-w-md space-y-6 border border-gray-700;
+}
+
+.modal-overlay {
+    @apply fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 overflow-y-auto;
+}
