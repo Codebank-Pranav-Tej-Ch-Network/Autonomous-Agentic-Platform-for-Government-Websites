@@ -1,27 +1,20 @@
+
 /**
- * Authentication Controller
+ * Auth Controller - FINAL SIMPLE VERSION
  * 
- * Handles user registration, login, profile management, and token refresh.
- * This controller manages the user's identity and session within the system.
+ * Matches the simplified User model
+ * No encryption complexity
  */
 
 const User = require('../models/User');
 const logger = require('../utils/logger');
 
-/**
- * Register New User
- * 
- * Creates a new user account with basic information. The user will need to
- * complete their profile later with government IDs and other details before
- * they can perform automation tasks.
- */
 exports.register = async (req, res, next) => {
   try {
     const { email, password, fullName, dateOfBirth, mobile, pan } = req.body;
 
     logger.info('Registration attempt', { email });
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res.status(400).json({
@@ -30,7 +23,6 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    // Check if PAN is already registered
     const existingPAN = await User.findOne({ 'governmentIds.pan': pan.toUpperCase() });
     if (existingPAN) {
       return res.status(400).json({
@@ -39,7 +31,6 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    // Create user with basic information
     const user = await User.create({
       email,
       password,
@@ -58,11 +49,9 @@ exports.register = async (req, res, next) => {
       email: user.email
     });
 
-    // Generate tokens
     const accessToken = user.getSignedJwtToken();
     const refreshToken = user.getRefreshToken();
 
-    // Return user data and tokens
     res.status(201).json({
       success: true,
       message: 'Account created successfully',
@@ -82,7 +71,6 @@ exports.register = async (req, res, next) => {
   } catch (error) {
     logger.error('Registration error:', error);
     
-    // Handle validation errors
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({
@@ -96,17 +84,10 @@ exports.register = async (req, res, next) => {
   }
 };
 
-/**
- * Login User
- * 
- * Authenticates a user with email and password, returns JWT tokens for
- * subsequent authenticated requests.
- */
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -116,10 +97,8 @@ exports.login = async (req, res, next) => {
 
     logger.info('Login attempt', { email });
 
-    // Find user and validate credentials
     const user = await User.findByCredentials(email, password);
 
-    // Check if account is active
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
@@ -127,7 +106,6 @@ exports.login = async (req, res, next) => {
       });
     }
 
-    // Generate tokens
     const accessToken = user.getSignedJwtToken();
     const refreshToken = user.getRefreshToken();
 
@@ -166,12 +144,6 @@ exports.login = async (req, res, next) => {
   }
 };
 
-/**
- * Get Current User Profile
- * 
- * Returns the complete profile of the authenticated user, including all
- * stored information and profile completeness status.
- */
 exports.getProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
@@ -183,12 +155,6 @@ exports.getProfile = async (req, res, next) => {
       });
     }
 
-    // Get decrypted Aadhaar if stored
-    let aadhaar = null;
-    if (user.governmentIds?.aadhaar?.isStored) {
-      aadhaar = user.getAadhaar();
-    }
-
     res.json({
       success: true,
       data: {
@@ -198,9 +164,10 @@ exports.getProfile = async (req, res, next) => {
           personalInfo: user.personalInfo,
           governmentIds: {
             pan: user.governmentIds?.pan,
-            hasAadhaar: user.governmentIds?.aadhaar?.isStored,
-            aadhaar: aadhaar ? aadhaar.replace(/\d(?=\d{4})/g, "X") : null, // Masked display
-            uan: user.governmentIds?.uan
+            aadhaar: user.governmentIds?.aadhaar, // Plain string
+            uan: user.governmentIds?.uan,         // Plain string
+            hasAadhaar: !!user.governmentIds?.aadhaar,
+            hasUAN: !!user.governmentIds?.uan
           },
           bankDetails: user.bankDetails,
           profileCompleteness: user.profileCompleteness,
@@ -217,18 +184,18 @@ exports.getProfile = async (req, res, next) => {
 };
 
 /**
- * Update User Profile
- * 
- * Allows users to update their profile information, add government IDs,
- * bank details, etc. This is essential for completing their profile to
- * enable task automation.
+ * SIMPLIFIED: Direct field updates
  */
 exports.updateProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const updates = req.body;
 
-    logger.info('Profile update attempt', { userId, updates: Object.keys(updates) });
+    console.log('═══════════════════════════════════════');
+    console.log('🔍 PROFILE UPDATE DEBUG START');
+    console.log('═══════════════════════════════════════');
+    console.log('User ID:', userId);
+    console.log('Raw request body:', JSON.stringify(updates, null, 2));
 
     const user = await User.findById(userId);
     if (!user) {
@@ -238,75 +205,88 @@ exports.updateProfile = async (req, res, next) => {
       });
     }
 
-    // Update personal information if provided
-    if (updates.personalInfo) {
-      user.personalInfo = { ...user.personalInfo, ...updates.personalInfo };
-    }
+    console.log('📝 BEFORE update:');
+    console.log('  - Aadhaar:', user.governmentIds?.aadhaar);
+    console.log('  - UAN:', user.governmentIds?.uan);
+    console.log('  - Profile %:', user.profileCompleteness);
 
-    // Update government IDs if provided
-    if (updates.governmentIds) {
-      // Handle Aadhaar specially (needs encryption)
-      if (updates.governmentIds.aadhaar) {
-        user.setAadhaar(updates.governmentIds.aadhaar);
-        delete updates.governmentIds.aadhaar; // Remove from direct updates
+    // Process each update
+    for (const [key, value] of Object.entries(updates)) {
+      console.log(`\n🔄 Processing: ${key} = ${value}`);
+
+      if (key === 'governmentIds.aadhaar') {
+        if (!user.governmentIds) user.governmentIds = {};
+        user.governmentIds.aadhaar = value;
+        console.log('✅ Set Aadhaar:', value);
+      } 
+      else if (key === 'governmentIds.uan') {
+        if (!user.governmentIds) user.governmentIds = {};
+        user.governmentIds.uan = value;
+        console.log('✅ Set UAN:', value);
       }
-      
-      // Update other government IDs
-      user.governmentIds = { ...user.governmentIds, ...updates.governmentIds };
-    }
-
-    // Handle bank details (can add or update)
-    if (updates.bankDetails) {
-      if (Array.isArray(updates.bankDetails)) {
-        user.bankDetails = updates.bankDetails;
-      } else {
-        // Adding a single bank account
-        user.bankDetails.push(updates.bankDetails);
+      else if (key.startsWith('personalInfo.')) {
+        const parts = key.split('.');
+        if (parts.length === 2) {
+          const field = parts[1];
+          if (!user.personalInfo) user.personalInfo = {};
+          user.personalInfo[field] = value;
+          console.log(`✅ Set personalInfo.${field}`);
+        } else if (parts.length === 3) {
+          const subfield = parts[2];
+          if (!user.personalInfo) user.personalInfo = {};
+          if (!user.personalInfo.address) user.personalInfo.address = {};
+          user.personalInfo.address[subfield] = value;
+          console.log(`✅ Set address.${subfield}`);
+        }
+      }
+      else if (key === 'bankDetails') {
+        user.bankDetails = value;
+        console.log('✅ Set bankDetails');
       }
     }
 
+    user.markModified('governmentIds');
+    user.markModified('personalInfo');
+
+    console.log('\n💾 Saving...');
     await user.save();
 
-    logger.info('Profile updated successfully', {
-      userId: user._id,
-      profileCompleteness: user.profileCompleteness
-    });
+    // Verify
+    const verifyUser = await User.findById(userId);
+    console.log('\n✅ AFTER save:');
+    console.log('  - Aadhaar:', verifyUser.governmentIds?.aadhaar);
+    console.log('  - UAN:', verifyUser.governmentIds?.uan);
+    console.log('  - Profile %:', verifyUser.profileCompleteness);
+    console.log('═══════════════════════════════════════\n');
 
     res.json({
       success: true,
       message: 'Profile updated successfully',
       data: {
-        profileCompleteness: user.profileCompleteness
+        profileCompleteness: verifyUser.profileCompleteness,
+        updatedFields: {
+          hasAadhaar: !!verifyUser.governmentIds?.aadhaar,
+          aadhaarValue: verifyUser.governmentIds?.aadhaar,
+          hasUAN: !!verifyUser.governmentIds?.uan,
+          uanValue: verifyUser.governmentIds?.uan
+        }
       }
     });
 
   } catch (error) {
+    console.error('❌ ERROR:', error);
     logger.error('Update profile error:', error);
     
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation failed',
-        errors: messages
-      });
-    }
-    
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };
 
-/**
- * Logout (Token Invalidation)
- * 
- * In a JWT system, logout is typically handled on the client side by
- * removing the token. This endpoint exists for consistency and can be
- * extended to implement token blacklisting if needed.
- */
 exports.logout = async (req, res, next) => {
   try {
     logger.info('User logged out', { userId: req.user.id });
-
     res.json({
       success: true,
       message: 'Logged out successfully'

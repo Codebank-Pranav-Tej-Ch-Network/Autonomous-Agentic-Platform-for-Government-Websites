@@ -1,19 +1,8 @@
 /**
- * Task Controller - The Orchestration Layer
+ * Task Controller - FIXED VERSION WITHOUT pdf-parse
  *
- * This controller is the heart of the application's task management system.
- * It handles the complete lifecycle of a task from the moment a user expresses
- * intent through natural language to the completion of the automation and delivery
- * of results.
- *
- * The flow it manages:
- * 1. User sends natural language message
- * 2. Controller uses LLM Router to understand intent
- * 3. If information is missing, starts a conversation to collect it
- * 4. Once all data is collected, creates a Task in MongoDB
- * 5. Adds task to Bull queue for background processing
- * 6. Monitors execution and streams real-time updates via WebSocket
- * 7. Returns final results to user
+ * CRITICAL FIX: Removed pdf-parse dependency (causes Node.js 18 issues)
+ * Alternative: Use Gemini Vision API for ALL file types including PDFs
  */
 
 const Task = require('../models/Task');
@@ -22,18 +11,16 @@ const llmRouter = require('../services/llmRouter');
 const queueManager = require('../services/queueManager');
 const { emitTaskProgress, emitTaskCompleted, emitTaskFailed } = require('../services/websocket');
 const logger = require('../utils/logger');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const fs = require('fs').promises;
+const path = require('path');
+const xlsx = require('xlsx');
+
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /**
  * Initiate Task Creation from Natural Language
- *
- * This is the main entry point when a user sends a message. The message might be
- * a complete request with all information, or it might be partial. This method
- * handles both cases intelligently.
- *
- * The response can be one of three types:
- * 1. "needsClarification" - More information required, includes a question
- * 2. "taskCreated" - Task successfully created and queued
- * 3. "error" - Something went wrong
  */
 exports.createTaskFromNaturalLanguage = async (req, res, next) => {
   try {
@@ -43,10 +30,9 @@ exports.createTaskFromNaturalLanguage = async (req, res, next) => {
     logger.info('Received task creation request', {
       userId,
       messageLength: message.length,
-      message: message.substring(0, 100) // Log first 100 chars
+      message: message.substring(0, 100)
     });
 
-    // Validate input
     if (!message || message.trim().length === 0) {
       return res.status(400).json({
         success: false,
@@ -54,21 +40,58 @@ exports.createTaskFromNaturalLanguage = async (req, res, next) => {
       });
     }
 
-    // Use LLM Router to classify and enrich with user profile data
-    const classification = await llmRouter.classifyWithUserContext(
-      message,
-      userId,
-      { conversationContext: req.body.conversationContext || null }
-    );
+    if (message.length > 2000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Message is too long. Please keep it under 2000 characters.'
+      });
+    }
 
-    logger.info('Classification completed', {
-      taskType: classification.taskType,
-      confidence: classification.confidence,
-      readyToExecute: classification.readyToExecute,
-      missingFieldsCount: classification.missingFields?.length || 0
-    });
+    let classification;
 
-    // If confidence is too low, ask user to clarify
+    try {
+      classification = await llmRouter.classifyWithUserContext(
+        message,
+        userId,
+        { conversationContext: req.body.conversationContext || null }
+      );
+
+      logger.info('Classification completed', {
+        taskType: classification.taskType,
+        confidence: classification.confidence,
+        readyToExecute: classification.readyToExecute,
+        missingFieldsCount: classification.missingFields?.length || 0
+      });
+
+    } catch (llmError) {
+      logger.error('LLM classification failed:', llmError);
+
+      let errorMessage = 'Unable to understand your request. ';
+
+      if (llmError.message.includes('API') || llmError.message.includes('quota')) {
+        errorMessage += 'Our AI service is temporarily unavailable. Please try again in a few moments.';
+      } else if (llmError.message.includes('timeout')) {
+        errorMessage += 'The request took too long. Please try a shorter, simpler request.';
+      } else {
+        errorMessage += 'Please try rephrasing your request or choose from the example prompts.';
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: errorMessage,
+        technicalDetails: process.env.NODE_ENV === 'development' ? llmError.message : undefined
+      });
+    }
+
+    if (!classification || !classification.taskType) {
+      return res.status(400).json({
+        success: false,
+        message: 'Unable to determine what task you want to perform. Please be more specific.',
+        needsClarification: true,
+        lowConfidence: true
+      });
+    }
+
     if (classification.confidence < 0.5) {
       return res.json({
         success: true,
@@ -78,20 +101,34 @@ exports.createTaskFromNaturalLanguage = async (req, res, next) => {
       });
     }
 
-    // If we need more information, return the clarification question
     if (classification.clarificationNeeded && !classification.readyToExecute) {
+      if (!classification.clarificationQuestion) {
+        logger.error('Classification needs clarification but no question provided');
+        return res.status(500).json({
+          success: false,
+          message: 'Unable to determine what information is needed. Please start over with a more detailed request.'
+        });
+      }
+
       return res.json({
         success: true,
         needsClarification: true,
         taskType: classification.taskType,
         question: classification.clarificationQuestion,
-        missingFields: classification.missingFields,
-        extractedParams: classification.extractedParams,
+        missingFields: classification.missingFields || [],
+        extractedParams: classification.extractedParams || {},
         conversationId: generateConversationId()
       });
     }
 
-    // We have everything we need - create the task
+    if (!classification.profileData && !classification.extractedParams) {
+      logger.error('Classification ready but no data provided');
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to extract necessary information. Please provide more details about your request.'
+      });
+    }
+
     logger.info('Creating task with full data', {
       userId,
       taskType: classification.taskType,
@@ -109,7 +146,6 @@ exports.createTaskFromNaturalLanguage = async (req, res, next) => {
       req
     );
 
-    // Return success with task details
     return res.status(201).json({
       success: true,
       message: 'Task created successfully and is being processed',
@@ -126,15 +162,17 @@ exports.createTaskFromNaturalLanguage = async (req, res, next) => {
       error: error.message,
       stack: error.stack
     });
-    next(error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while processing your request. Please try again.',
+      technicalDetails: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
+
 /**
  * Handle Clarification Response
- *
- * When we ask the user for more information, they respond with this endpoint.
- * We take their response, combine it with the previous context, and attempt
- * to create the task again.
  */
 exports.handleClarificationResponse = async (req, res, next) => {
   try {
@@ -147,41 +185,70 @@ exports.handleClarificationResponse = async (req, res, next) => {
       responseLength: response.length
     });
 
-    // Validate input
     if (!response || !previousContext) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid clarification response'
+        message: 'Invalid clarification response. Please provide the requested information.'
       });
     }
 
-    // Combine the original message with the new response
+    if (!previousContext.originalMessage) {
+      return res.status(400).json({
+        success: false,
+        message: 'Conversation context is invalid. Please start over.'
+      });
+    }
+
     const fullMessage = `${previousContext.originalMessage}\n\nAdditional information: ${response}`;
 
-    // Try classification again with the additional information
-    const classification = await llmRouter.classifyWithUserContext(
-      fullMessage,
-      userId,
-      {
-        conversationContext: previousContext,
-        previousExtractedParams: previousContext.extractedParams
-      }
-    );
+    let classification;
 
-    // Check if we still need more information
+    try {
+      classification = await llmRouter.classifyWithUserContext(
+        fullMessage,
+        userId,
+        {
+          conversationContext: previousContext,
+          previousExtractedParams: previousContext.extractedParams || {}
+        }
+      );
+
+    } catch (llmError) {
+      logger.error('LLM classification failed on clarification:', llmError);
+
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to process your response. Please try rephrasing or start over.',
+        technicalDetails: process.env.NODE_ENV === 'development' ? llmError.message : undefined
+      });
+    }
+
     if (classification.clarificationNeeded && !classification.readyToExecute) {
+      const clarificationCount = previousContext.clarificationCount || 0;
+
+      if (clarificationCount >= 3) {
+        logger.warn('Too many clarification attempts', { userId, conversationId });
+        return res.status(400).json({
+          success: false,
+          message: 'Unable to understand your requirements after multiple attempts. Please start over with a more detailed request, or complete your profile to provide the missing information automatically.'
+        });
+      }
+
       return res.json({
         success: true,
         needsClarification: true,
         taskType: classification.taskType,
         question: classification.clarificationQuestion,
         missingFields: classification.missingFields,
-        extractedParams: classification.extractedParams,
-        conversationId: conversationId
+        extractedParams: {
+          ...previousContext.extractedParams,
+          ...classification.extractedParams
+        },
+        conversationId: conversationId,
+        clarificationCount: clarificationCount + 1
       });
     }
 
-    // Create the task now that we have all information
     const task = await this.createTaskWithFullData(
       userId,
       classification.taskType,
@@ -205,16 +272,17 @@ exports.handleClarificationResponse = async (req, res, next) => {
 
   } catch (error) {
     logger.error('Error in handleClarificationResponse:', error);
-    next(error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while processing your response. Please try again.',
+      technicalDetails: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
 /**
  * Create Task with Complete Data
- *
- * This internal method is called once we have all the information needed to
- * create a task. It creates the MongoDB document, validates the data, adds
- * the task to the processing queue, and returns the created task.
  */
 exports.createTaskWithFullData = async (userId, taskType, inputData, req) => {
   try {
@@ -224,7 +292,6 @@ exports.createTaskWithFullData = async (userId, taskType, inputData, req) => {
       dataKeys: Object.keys(inputData)
     });
 
-    // Convert inputData object to Map (Task model expects Map)
     const inputDataMap = new Map();
     for (const [key, value] of Object.entries(inputData)) {
       if (value !== undefined && value !== null) {
@@ -232,7 +299,6 @@ exports.createTaskWithFullData = async (userId, taskType, inputData, req) => {
       }
     }
 
-    // Create the task document
     const task = await Task.create({
       user: userId,
       taskType: taskType,
@@ -250,19 +316,16 @@ exports.createTaskWithFullData = async (userId, taskType, inputData, req) => {
       taskType: task.taskType
     });
 
-    // Add progress update: Task created
     await task.addProgressUpdate(
       'Task Created',
       'completed',
       `Your ${taskType.replace('_', ' ')} task has been created and is being queued for processing.`
     );
 
-    // Add to processing queue
     try {
       await queueManager.addTask(task);
       logger.info('Task added to queue', { taskId: task._id });
 
-      // Emit WebSocket event that task was created
       emitTaskProgress(userId.toString(), {
         taskId: task._id,
         status: 'queued',
@@ -273,7 +336,6 @@ exports.createTaskWithFullData = async (userId, taskType, inputData, req) => {
     } catch (queueError) {
       logger.error('Failed to add task to queue', { taskId: task._id, error: queueError });
 
-      // Update task status to failed
       task.status = 'failed';
       task.error = {
         code: 'QUEUE_ERROR',
@@ -294,11 +356,196 @@ exports.createTaskWithFullData = async (userId, taskType, inputData, req) => {
 };
 
 /**
- * Get All Tasks for Current User
- *
- * Returns a paginated list of all tasks belonging to the authenticated user,
- * sorted by most recent first.
+ * FIXED: Extract data from uploaded files using ONLY Gemini
+ * No pdf-parse dependency needed!
  */
+exports.extractDataFromFiles = async (req, res, next) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No files uploaded'
+      });
+    }
+
+    logger.info('Processing uploaded files', {
+      count: req.files.length,
+      files: req.files.map(f => ({ name: f.originalname, type: f.mimetype, size: f.size }))
+    });
+
+    const extractedData = {
+      salary: null,
+      deductions: null,
+      otherIncome: null,
+      taxPaid: null,
+      rawText: []
+    };
+
+    for (const file of req.files) {
+      try {
+        let text = '';
+
+        // FIXED: Use appropriate method based on file type
+        if (file.mimetype.includes('sheet') || file.mimetype.includes('excel')) {
+          text = await extractTextFromExcel(file.path);
+        } else {
+          // For PDFs and images, use Gemini Vision API
+          text = await extractTextWithGemini(file.path, file.mimetype);
+        }
+
+        extractedData.rawText.push({
+          filename: file.originalname,
+          text: text
+        });
+
+        const structured = await extractFinancialDataWithGemini(text);
+
+        if (structured.salary && !extractedData.salary) {
+          extractedData.salary = structured.salary;
+        }
+        if (structured.deductions && !extractedData.deductions) {
+          extractedData.deductions = structured.deductions;
+        }
+        if (structured.otherIncome && !extractedData.otherIncome) {
+          extractedData.otherIncome = structured.otherIncome;
+        }
+        if (structured.taxPaid && !extractedData.taxPaid) {
+          extractedData.taxPaid = structured.taxPaid;
+        }
+
+        // Clean up uploaded file
+        await fs.unlink(file.path);
+
+      } catch (fileError) {
+        logger.error(`Error processing file ${file.originalname}:`, fileError);
+        // Continue with other files
+      }
+    }
+
+    logger.info('Data extraction completed', extractedData);
+
+    res.json({
+      success: true,
+      extractedData: {
+        salary: extractedData.salary,
+        deductions: extractedData.deductions,
+        otherIncome: extractedData.otherIncome,
+        taxPaid: extractedData.taxPaid
+      },
+      rawText: extractedData.rawText
+    });
+
+  } catch (error) {
+    logger.error('Error in extractDataFromFiles:', error);
+    next(error);
+  }
+};
+
+/**
+ * FIXED: Extract text from Excel (xlsx package works fine)
+ */
+async function extractTextFromExcel(filePath) {
+  const workbook = xlsx.readFile(filePath);
+  let text = '';
+
+  workbook.SheetNames.forEach(sheetName => {
+    const sheet = workbook.Sheets[sheetName];
+    const jsonData = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+
+    jsonData.forEach(row => {
+      text += row.join(' | ') + '\n';
+    });
+  });
+
+  return text;
+}
+
+/**
+ * FIXED: Extract text from ANY file using Gemini Vision/Document API
+ * Works for PDFs, images, and more!
+ */
+async function extractTextWithGemini(filePath, mimeType) {
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+
+    const fileData = await fs.readFile(filePath);
+    const base64Data = fileData.toString('base64');
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: mimeType,
+          data: base64Data
+        }
+      },
+      'Extract all text from this document/image. Focus on financial information like salary, income, deductions, tax amounts, and other monetary values. Return the complete text content.'
+    ]);
+
+    const response = await result.response;
+    return response.text();
+
+  } catch (error) {
+    logger.error('Gemini document extraction error:', error);
+    throw new Error('Failed to extract text from file');
+  }
+}
+
+/**
+ * Use Gemini to extract structured financial data
+ */
+async function extractFinancialDataWithGemini(text) {
+  try {
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.0-flash-exp',
+      generationConfig: {
+        temperature: 0.1,
+        topP: 0.95,
+        maxOutputTokens: 1024,
+      }
+    });
+
+    const prompt = `Analyze this financial document text and extract the following information in JSON format:
+
+{
+  "salary": "annual salary amount in rupees (numbers only, no commas or currency symbols)",
+  "deductions": "total tax deductions amount (80C, 80D, etc.)",
+  "otherIncome": "other income amounts if mentioned",
+  "taxPaid": "tax already paid amount if mentioned"
+}
+
+If a field is not found, return null for that field.
+Only return the JSON, no additional text.
+
+Document text:
+${text.substring(0, 8000)}
+
+JSON:`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const responseText = response.text();
+
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        salary: parsed.salary ? parseInt(parsed.salary.toString().replace(/,/g, '')) : null,
+        deductions: parsed.deductions ? parseInt(parsed.deductions.toString().replace(/,/g, '')) : null,
+        otherIncome: parsed.otherIncome ? parseInt(parsed.otherIncome.toString().replace(/,/g, '')) : null,
+        taxPaid: parsed.taxPaid ? parseInt(parsed.taxPaid.toString().replace(/,/g, '')) : null
+      };
+    }
+
+    return { salary: null, deductions: null, otherIncome: null, taxPaid: null };
+
+  } catch (error) {
+    logger.error('Gemini extraction error:', error);
+    return { salary: null, deductions: null, otherIncome: null, taxPaid: null };
+  }
+}
+
+// ... REST OF THE METHODS (getAllTasks, getTaskById, etc.) ...
+
 exports.getAllTasks = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -306,7 +553,6 @@ exports.getAllTasks = async (req, res, next) => {
 
     const query = { user: userId };
 
-    // Filter by status if provided
     if (status) {
       query.status = status;
     }
@@ -336,12 +582,6 @@ exports.getAllTasks = async (req, res, next) => {
   }
 };
 
-/**
- * Get Task by ID
- *
- * Returns detailed information about a specific task, including its current
- * status, progress history, and results if completed.
- */
 exports.getTaskById = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -370,12 +610,6 @@ exports.getTaskById = async (req, res, next) => {
   }
 };
 
-/**
- * Get Task Status (Lightweight)
- *
- * Returns just the status information for a task, useful for polling
- * or quick status checks without loading the full task data.
- */
 exports.getTaskStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -411,13 +645,6 @@ exports.getTaskStatus = async (req, res, next) => {
   }
 };
 
-/**
- * Cancel Task
- *
- * Attempts to cancel a task that is pending or queued. Once a task is
- * actively processing, it may not be cancellable depending on how far
- * along it is in the automation workflow.
- */
 exports.cancelTask = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -435,7 +662,6 @@ exports.cancelTask = async (req, res, next) => {
       });
     }
 
-    // Check if task can be cancelled
     if (!['pending', 'queued', 'awaiting_input'].includes(task.status)) {
       return res.status(400).json({
         success: false,
@@ -443,12 +669,10 @@ exports.cancelTask = async (req, res, next) => {
       });
     }
 
-    // Update task status
     task.status = 'cancelled';
     task.cancelledAt = new Date();
     await task.save();
 
-    // Remove from queue if it's still there
     try {
       await queueManager.removeTask(task._id);
       logger.info('Task removed from queue', { taskId: task._id });
@@ -459,7 +683,6 @@ exports.cancelTask = async (req, res, next) => {
       });
     }
 
-    // Emit WebSocket event
     emitTaskProgress(userId.toString(), {
       taskId: task._id,
       status: 'cancelled',
@@ -478,12 +701,6 @@ exports.cancelTask = async (req, res, next) => {
   }
 };
 
-/**
- * Get Active Tasks
- *
- * Returns all tasks that are currently active (pending, queued, or processing)
- * for the authenticated user. Useful for dashboard displays showing current activity.
- */
 exports.getActiveTasks = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -502,18 +719,11 @@ exports.getActiveTasks = async (req, res, next) => {
   }
 };
 
-/**
- * Retry Failed Task
- *
- * Creates a new task with the same parameters as a failed task, allowing
- * the user to retry the operation without re-entering all information.
- */
 exports.retryTask = async (req, res, next) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
 
-    // Find the original failed task
     const originalTask = await Task.findOne({
       _id: id,
       user: userId
@@ -533,7 +743,6 @@ exports.retryTask = async (req, res, next) => {
       });
     }
 
-    // Create a new task with the same data
     const inputDataObject = {};
     for (const [key, value] of originalTask.inputData.entries()) {
       inputDataObject[key] = value;
@@ -564,9 +773,6 @@ exports.retryTask = async (req, res, next) => {
   }
 };
 
-/**
- * Utility function to generate conversation IDs
- */
 function generateConversationId() {
   return `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
