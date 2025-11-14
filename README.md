@@ -73,9 +73,6 @@ govt-automation-agent/
     │   └── database.js
     ├── controllers
     │   ├── authController.js
-    │   ├── og_authController.js
-    │   ├── oldAuthController.js
-    │   ├── oldtaskController.js
     │   └── taskController.js
     ├── logs
     │   ├── combined.log
@@ -97,7 +94,7 @@ govt-automation-agent/
     ├── server.js
     ├── services
     │   ├── llmRouter.js
-    │   ├── oldllmRouter.js
+    │   ├── oldllmRouter.j
     │   ├── queueManager.js
     │   └── websocket.js
     ├── uploads
