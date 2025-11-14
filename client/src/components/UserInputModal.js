@@ -1,6 +1,6 @@
 /**
  * UserInputModal Component
- *
+ * 
  * Displays when the automation script needs user input for CAPTCHA or OTP.
  * The backend will emit a WebSocket event requesting input, and this modal
  * will appear to collect it from the user.

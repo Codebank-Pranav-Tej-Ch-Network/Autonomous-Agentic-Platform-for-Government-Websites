@@ -1,10 +1,10 @@
 /**
  * AgentStatus Component
- *
+ * 
  * Displays real-time status updates for a running automation task.
  * Connects via WebSocket to receive live progress updates as the
  * automation script executes.
- *
+ * 
  * Visual elements:
  * - Progress bar showing completion percentage
  * - Step-by-step log of what's happening
@@ -15,11 +15,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Clock,
-  Loader,
-  CheckCircle,
-  XCircle,
+import { 
+  Clock, 
+  Loader, 
+  CheckCircle, 
+  XCircle, 
   AlertCircle,
   Activity,
   Download
@@ -231,7 +231,7 @@ export default function AgentStatus({ task: initialTask }) {
                     ? 'bg-red-500'
                     : 'bg-blue-500'
                 }`} />
-
+                
                 <div className="flex-1">
                   <p className={`text-sm ${
                     item.isComplete
