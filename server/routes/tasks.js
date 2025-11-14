@@ -1,6 +1,6 @@
 /**
- * Task Routes
- * 
+ * Task Routes - COMPLETE VERSION WITH FILE UPLOAD
+ *
  * These routes define the API endpoints that the React frontend will call
  * to interact with the task system. Each route is protected by authentication
  * middleware, ensuring only logged-in users can access their tasks.
@@ -11,14 +11,64 @@ const router = express.Router();
 const taskController = require('../controllers/taskController');
 const { protect } = require('../middleware/auth');
 const { validate, createTaskSchema } = require('../middleware/validation');
+const multer = require('multer');
+const path = require('path');
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // Make sure this directory exists
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB max file size
+  },
+  fileFilter: function (req, file, cb) {
+    // Accept only specific file types
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'image/jpeg',
+      'image/png',
+      'image/jpg'
+    ];
+
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PDF, Excel, and images are allowed.'));
+    }
+  }
+});
 
 // All task routes require authentication
 router.use(protect);
 
 /**
+ * POST /api/v1/tasks/extract-data
+ * NEW: Extract data from uploaded files using AI
+ *
+ * Body: multipart/form-data with files[]
+ * Returns: Extracted financial data (salary, deductions, etc.)
+ */
+router.post(
+  '/extract-data',
+  upload.array('files', 5), // Accept up to 5 files
+  taskController.extractDataFromFiles
+);
+
+/**
  * POST /api/v1/tasks/create
  * Create a new task from natural language input
- * 
+ *
  * Body: { message: string, conversationContext?: object }
  * Returns: Task object or clarification request
  */
@@ -31,7 +81,7 @@ router.post(
 /**
  * POST /api/v1/tasks/clarify
  * Provide clarification in response to a question
- * 
+ *
  * Body: { conversationId: string, response: string, previousContext: object }
  * Returns: Task object or follow-up clarification
  */
@@ -43,7 +93,7 @@ router.post(
 /**
  * GET /api/v1/tasks
  * Get all tasks for the authenticated user
- * 
+ *
  * Query params: page?, limit?, status?
  * Returns: Paginated list of tasks
  */
@@ -55,7 +105,7 @@ router.get(
 /**
  * GET /api/v1/tasks/active
  * Get currently active tasks
- * 
+ *
  * Returns: List of active tasks
  */
 router.get(
@@ -66,7 +116,7 @@ router.get(
 /**
  * GET /api/v1/tasks/:id
  * Get detailed information about a specific task
- * 
+ *
  * Returns: Complete task object with history
  */
 router.get(
@@ -77,7 +127,7 @@ router.get(
 /**
  * GET /api/v1/tasks/:id/status
  * Get lightweight status information
- * 
+ *
  * Returns: Just the status and progress info
  */
 router.get(
@@ -88,7 +138,7 @@ router.get(
 /**
  * POST /api/v1/tasks/:id/cancel
  * Cancel a pending or queued task
- * 
+ *
  * Returns: Updated task object
  */
 router.post(
@@ -99,7 +149,7 @@ router.post(
 /**
  * POST /api/v1/tasks/:id/retry
  * Retry a failed task
- * 
+ *
  * Returns: New task object
  */
 router.post(
