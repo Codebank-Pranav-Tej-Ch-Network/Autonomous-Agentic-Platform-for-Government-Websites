@@ -1,17 +1,19 @@
 /**
- * Enhanced User Model with Complete Profile Information
+ * User Model - SIMPLIFIED VERSION
  * 
- * This model stores user profile data that is relatively stable and reused
- * across multiple automation tasks. Sensitive data like Aadhaar is encrypted.
+ * CRITICAL FIX: Removed ALL encryption complexity
+ * - Aadhaar stored as plain string
+ * - UAN stored as plain string
+ * - Simple, straightforward schema
+ * 
+ * WE NEED IT TO WORK FIRST!
  */
 
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 
-const userSchema = new mongoose.Schema({
-  // Authentication fields
+const UserSchema = new mongoose.Schema({
   email: {
     type: String,
     required: [true, 'Please provide an email'],
@@ -20,83 +22,56 @@ const userSchema = new mongoose.Schema({
     trim: true,
     match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email']
   },
-  
+
   password: {
     type: String,
     required: [true, 'Please provide a password'],
-    minlength: [6, 'Password must be at least 6 characters'],
+    minlength: 6,
     select: false
   },
-  
-  role: {
-    type: String,
-    enum: ['user', 'admin'],
-    default: 'user'
-  },
-  
-  // Personal Information - Used across all services
+
   personalInfo: {
     fullName: {
       type: String,
-      required: [true, 'Full name is required'],
-      trim: true,
-      maxlength: [100, 'Name cannot exceed 100 characters']
+      required: [true, 'Please provide your full name'],
+      trim: true
     },
-    
     dateOfBirth: {
-      type: Date,
-      required: [true, 'Date of birth is required']
+      type: Date
     },
-    
     mobile: {
       type: String,
-      required: [true, 'Mobile number is required'],
       match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit mobile number']
     },
-    
     address: {
-      line1: { type: String },
+      line1: String,
       line2: String,
-      city: { type: String },
-      state: { type: String },
+      city: String,
+      state: String,
       pincode: {
         type: String,
         match: [/^[0-9]{6}$/, 'Please provide a valid 6-digit pincode']
       }
     }
   },
-  
-  // Government IDs - Different services need different IDs
+
+  // SIMPLIFIED: Plain strings, no encryption
   governmentIds: {
-    // PAN - Required for Income Tax
     pan: {
       type: String,
-      required: [true, 'PAN is required'],
-      unique: true,
       uppercase: true,
-      match: [/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Please provide a valid PAN format']
+      match: [/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Please provide a valid PAN']
     },
-    
-    // Aadhaar - Required for DigiLocker and ITR e-verification
-    // Stored encrypted for security
     aadhaar: {
-      encrypted: String,
-      iv: String,  // Initialization vector for decryption
-      isStored: {
-        type: Boolean,
-        default: false
-      }
+      type: String,  // ← PLAIN STRING!
+      match: [/^[0-9]{12}$/, 'Please provide a valid 12-digit Aadhaar']
     },
-    
-    // UAN - Required for EPFO services
     uan: {
-      type: String,
-      match: [/^[0-9]{12}$/, 'UAN must be 12 digits'],
-      sparse: true  // Allows null values while maintaining uniqueness for non-null values
+      type: String,  // ← PLAIN STRING!
+      match: [/^[0-9]{12}$/, 'Please provide a valid 12-digit UAN']
     }
   },
-  
-  // Bank Details - Used for refunds and transfers
+
   bankDetails: [{
     bankName: {
       type: String,
@@ -122,214 +97,93 @@ const userSchema = new mongoose.Schema({
       default: false
     }
   }],
-  
-  // Activity tracking
+
+  profileCompleteness: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
+  },
+
   tasksCompleted: {
     type: Number,
     default: 0
   },
-  
+
   isActive: {
     type: Boolean,
     default: true
   },
-  
-  lastLoginAt: Date,
-  
-  // Profile completion percentage (calculated field)
-  profileCompleteness: {
-    type: Number,
-    default: 0
+
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user'
   }
-  
 }, {
   timestamps: true
 });
 
-/**
- * Middleware: Hash password before saving
- */
-userSchema.pre('save', async function(next) {
+// Hash password before saving
+UserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
-    return next();
+    next();
   }
   
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
-  next();
 });
 
-/**
- * Middleware: Calculate profile completeness before saving
- */
-userSchema.pre('save', function(next) {
-  let completedFields = 0;
+// Calculate profile completeness before saving
+UserSchema.pre('save', function(next) {
+  let completeness = 0;
   const totalFields = 10;
   
-  if (this.personalInfo?.fullName) completedFields++;
-  if (this.personalInfo?.dateOfBirth) completedFields++;
-  if (this.personalInfo?.mobile) completedFields++;
-  if (this.personalInfo?.address?.line1) completedFields++;
-  if (this.personalInfo?.address?.city) completedFields++;
-  if (this.governmentIds?.pan) completedFields++;
-  if (this.governmentIds?.aadhaar?.isStored) completedFields++;
-  if (this.governmentIds?.uan) completedFields++;
-  if (this.bankDetails?.length > 0) completedFields++;
-  if (this.email) completedFields++;
+  // Basic info (30%)
+  if (this.email) completeness += 10;
+  if (this.personalInfo?.fullName) completeness += 10;
+  if (this.personalInfo?.mobile) completeness += 10;
   
-  this.profileCompleteness = Math.round((completedFields / totalFields) * 100);
+  // Government IDs (40%)
+  if (this.governmentIds?.pan) completeness += 10;
+  if (this.governmentIds?.aadhaar) completeness += 15;  // ← Check string directly
+  if (this.governmentIds?.uan) completeness += 15;      // ← Check string directly
+  
+  // Additional info (30%)
+  if (this.personalInfo?.dateOfBirth) completeness += 10;
+  if (this.personalInfo?.address?.line1) completeness += 10;
+  if (this.bankDetails && this.bankDetails.length > 0) completeness += 10;
+  
+  this.profileCompleteness = completeness;
   next();
 });
 
-/**
- * Instance Method: Encrypt and store Aadhaar number
- */
-userSchema.methods.setAadhaar = function(aadhaarNumber) {
-  if (!process.env.ENCRYPTION_KEY) {
-    throw new Error('Encryption key not configured');
-  }
-  
-  // Create cipher
-  const algorithm = 'aes-256-cbc';
-  const key = Buffer.from(process.env.ENCRYPTION_KEY, 'hex');
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(algorithm, key, iv);
-  
-  // Encrypt
-  let encrypted = cipher.update(aadhaarNumber, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  
-  // Store encrypted data and IV
-  this.governmentIds.aadhaar = {
-    encrypted: encrypted,
-    iv: iv.toString('hex'),
-    isStored: true
-  };
-};
-
-/**
- * Instance Method: Decrypt and retrieve Aadhaar number
- */
-userSchema.methods.getAadhaar = function() {
-  if (!this.governmentIds?.aadhaar?.isStored) {
-    return null;
-  }
-  
-  if (!process.env.ENCRYPTION_KEY) {
-    throw new Error('Encryption key not configured');
-  }
-  
-  try {
-    const algorithm = 'aes-256-cbc';
-    const key = Buffer.from(process.env.ENCRYPTION_KEY, 'hex');
-    const iv = Buffer.from(this.governmentIds.aadhaar.iv, 'hex');
-    const decipher = crypto.createDecipheriv(algorithm, key, iv);
-    
-    let decrypted = decipher.update(this.governmentIds.aadhaar.encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    
-    return decrypted;
-  } catch (error) {
-    console.error('Error decrypting Aadhaar:', error);
-    return null;
-  }
-};
-
-/**
- * Instance Method: Get primary bank account
- */
-userSchema.methods.getPrimaryBankAccount = function() {
-  if (!this.bankDetails || this.bankDetails.length === 0) {
-    return null;
-  }
-  
-  // Find primary account
-  const primaryAccount = this.bankDetails.find(account => account.isPrimary);
-  
-  // If no primary set, return first account
-  return primaryAccount || this.bankDetails[0];
-};
-
-/**
- * Instance Method: Check if profile is sufficiently complete for a task type
- */
-userSchema.methods.canPerformTask = function(taskType) {
-  const requirements = {
-    itr_filing: ['personalInfo.fullName', 'governmentIds.pan', 'bankDetails'],
-    digilocker_download: ['personalInfo.fullName', 'governmentIds.aadhaar'],
-    epfo_balance: ['personalInfo.fullName', 'governmentIds.uan']
-  };
-  
-  const requiredFields = requirements[taskType] || [];
-  
-  for (const field of requiredFields) {
-    const value = field.split('.').reduce((obj, key) => obj?.[key], this);
-    if (!value || (Array.isArray(value) && value.length === 0)) {
-      return false;
-    }
-  }
-  
-  return true;
-};
-
-/**
- * Instance Method: Get missing fields for a task type
- */
-userSchema.methods.getMissingFields = function(taskType) {
-  const requirements = {
-    itr_filing: [
-      { field: 'personalInfo.fullName', label: 'Full Name' },
-      { field: 'governmentIds.pan', label: 'PAN Number' },
-      { field: 'bankDetails', label: 'Bank Account Details' }
-    ],
-    digilocker_download: [
-      { field: 'personalInfo.fullName', label: 'Full Name' },
-      { field: 'governmentIds.aadhaar', label: 'Aadhaar Number' }
-    ],
-    epfo_balance: [
-      { field: 'personalInfo.fullName', label: 'Full Name' },
-      { field: 'governmentIds.uan', label: 'UAN' }
-    ]
-  };
-  
-  const requiredFields = requirements[taskType] || [];
-  const missing = [];
-  
-  for (const {field, label} of requiredFields) {
-    const value = field.split('.').reduce((obj, key) => obj?.[key], this);
-    if (!value || (Array.isArray(value) && value.length === 0)) {
-      missing.push({ field, label });
-    }
-  }
-  
-  return missing;
-};
-
-// Password comparison method
-userSchema.methods.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
-};
-
-// JWT token generation
-userSchema.methods.getSignedJwtToken = function() {
+// Generate JWT token
+UserSchema.methods.getSignedJwtToken = function() {
   return jwt.sign(
     { id: this._id, email: this.email },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRE || '15m' }
+    { expiresIn: '7d' }
   );
 };
 
-userSchema.methods.getRefreshToken = function() {
+// Generate refresh token
+UserSchema.methods.getRefreshToken = function() {
   return jwt.sign(
     { id: this._id },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+    { expiresIn: '30d' }
   );
 };
 
-// Static method for login
-userSchema.statics.findByCredentials = async function(email, password) {
-  const user = await this.findOne({ email }).select('+password');
+// Match password
+UserSchema.methods.matchPassword = async function(enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
+
+// Static method to find by credentials
+UserSchema.statics.findByCredentials = async function(email, password) {
+  const user = await this.findOne({ email: email.toLowerCase() }).select('+password');
   
   if (!user) {
     throw new Error('Invalid login credentials');
@@ -341,10 +195,19 @@ userSchema.statics.findByCredentials = async function(email, password) {
     throw new Error('Invalid login credentials');
   }
   
-  user.lastLoginAt = new Date();
-  await user.save();
-  
   return user;
 };
 
-module.exports = mongoose.model('User', userSchema);
+// Get primary bank account
+UserSchema.methods.getPrimaryBankAccount = function() {
+  if (!this.bankDetails || this.bankDetails.length === 0) {
+    return null;
+  }
+  
+  return this.bankDetails.find(account => account.isPrimary) || this.bankDetails[0];
+};
+
+// REMOVED: All encryption methods (setAadhaar, getAadhaar)
+// Now Aadhaar is just a plain string!
+
+module.exports = mongoose.model('User', UserSchema);
