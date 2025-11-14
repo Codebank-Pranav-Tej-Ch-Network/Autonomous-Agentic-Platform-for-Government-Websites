@@ -1,107 +1,110 @@
 # <u>Directory Structure: govt-automation-agent</u>
 ```markdown
 govt-automation-agent/
-│
-├── .env.example                    # Environment variables template
-├── .gitignore                      # Git ignore file
-├── package.json                    # Root package.json
-├── README.md                       # Project documentation
-│
-├── client/                         # React Frontend
-│   ├── package.json
-│   ├── public/
-│   │   └── index.html
-│   ├── src/
-│   │   ├── App.js                 # Main app component
-│   │   ├── index.js               # Entry point
-│   │   ├── components/
-│   │   │   ├── Dashboard.js       # Main dashboard
-│   │   │   ├── TaskSelector.js    # Task selection UI
-│   │   │   ├── AgentStatus.js     # Real-time status display
-│   │   │   ├── ResultsPanel.js    # Results display
-│   │   │   ├── CaptchaSolver.js   # Manual captcha interface
-│   │   │   └── Navbar.js          # Navigation bar
-│   │   ├── services/
-│   │   │   ├── api.js             # API service layer
-│   │   │   └── websocket.js       # WebSocket client
-│   │   ├── context/
-│   │   │   └── AppContext.js      # Global state management
-│   │   ├── utils/
-│   │   │   └── helpers.js         # Utility functions
-│   │   └── styles/
-│   │       └── tailwind.config.js # Tailwind configuration
-│   └── .env
-│
-├── server/                         # Node.js Backend
-│   ├── package.json
-│   ├── server.js                  # Main server file
-│   ├── config/
-│   │   ├── database.js            # MongoDB connection
-│   │   ├── gemini.js              # Gemini API setup
-│   │   └── constants.js           # App constants
-│   ├── routes/
-│   │   ├── auth.js                # Authentication routes
-│   │   ├── tasks.js               # Task management routes
-│   │   └── results.js             # Results retrieval routes
-│   ├── controllers/
-│   │   ├── authController.js      # Auth logic
-│   │   ├── taskController.js      # Task handling logic
-│   │   └── resultController.js    # Results logic
-│   ├── models/
-│   │   ├── User.js                # User schema
-│   │   ├── Task.js                # Task schema
-│   │   ├── Result.js              # Result schema
-│   │   └── Session.js             # Session schema
-│   ├── services/
-│   │   ├── llmRouter.js           # LLM-based task routing
-│   │   ├── queueManager.js        # Bull queue management
-│   │   └── websocket.js           # WebSocket server
-│   ├── middleware/
-│   │   ├── auth.js                # JWT verification
-│   │   ├── validation.js          # Input validation
-│   │   └── errorHandler.js        # Error handling
-│   ├── automation/                # Playwright scripts
-│   │   ├── scripts/
-│   │   │   ├── itrFiling.js       # Income Tax script
-│   │   │   ├── digilocker.js      # DigiLocker script
-│   │   │   └── epfo.js            # EPFO script
-│   │   └── utils/
-│   │       ├── browserManager.js  # Browser instance management
-│   │       └── helpers.js         # Automation utilities
-│   └── .env
-│
-├── mock-portals/                   # Mock Government Portals
-│   ├── package.json
-│   ├── income-tax/
-│   │   ├── app.js                 # Express app for mock IT portal
-│   │   ├── views/                 # EJS templates
-│   │   │   ├── login.ejs
-│   │   │   ├── dashboard.ejs
-│   │   │   ├── itr-form.ejs
-│   │   │   └── success.ejs
-│   │   ├── public/                # Static assets
-│   │   │   ├── css/
-│   │   │   └── js/
-│   │   └── data/                  # Mock data
-│   │       └── testUsers.json
-│   ├── digilocker/
-│   │   ├── app.js
-│   │   ├── views/
-│   │   ├── public/
-│   │   └── data/
-│   └── epfo/
-│       ├── app.js
-│       ├── views/
-│       ├── public/
-│       └── data/
-│
-├── docs/                           # Documentation
-│   ├── API.md                     # API documentation
-│   ├── SETUP.md                   # Setup instructions
-│   ├── DEPLOYMENT.md              # Deployment guide
-│   └── ARCHITECTURE.md            # Architecture details
-│
-└── scripts/                        # Utility scripts
-    ├── seed-database.js           # Database seeding
-    ├── test-automation.js         # Test automation scripts
-    └── generate-mock-data.js      # Mock data generator
+.
+├── client
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── public
+│   │   ├── index.html
+│   │   └── manifest.json
+│   └── src
+│       ├── App.js
+│       ├── components
+│       │   ├── AgentStatus.js
+│       │   ├── Auth.js
+│       │   ├── Dashboard.js
+│       │   ├── ProfileManagement.js
+│       │   ├── ResultsPanel.js
+│       │   ├── Taskselector.js
+│       │   └── UserInputModal.js
+│       ├── context
+│       ├── index.js
+│       ├── services
+│       │   ├── api.js
+│       │   └── websocket.js
+│       └── utils
+├── docs
+├── mock-portals
+│   ├── digilocker
+│   │   ├── data
+│   │   ├── public
+│   │   └── views
+│   ├── epfo
+│   │   ├── data
+│   │   ├── public
+│   │   └── views
+│   └── income-tax
+│       ├── app.js
+│       ├── data
+│       │   └── testUsers.json
+│       ├── package-lock.json
+│       ├── package.json
+│       ├── public
+│       │   ├── css
+│       │   │   └── styles.css
+│       │   └── js
+│       └── views
+│           ├── dashboard.ejs
+│           ├── e-file.ejs
+│           ├── error.ejs
+│           ├── index.ejs
+│           ├── itr-form.ejs
+│           ├── itr-selection.ejs
+│           ├── itr-success.ejs
+│           ├── login.ejs
+│           └── partials
+│               ├── footer.ejs
+│               └── header.ejs
+├── package-lock.json
+├── package.json
+├── scripts
+└── server
+    ├── automation
+    │   └── scripts
+    │       ├── digilocker.js
+    │       ├── epfo.js
+    │       ├── itrFiling.js
+    │       ├── test-all.js
+    │       ├── test-digilocker.js
+    │       ├── test-epfo.js
+    │       └── test-itr.js
+    ├── config
+    │   └── database.js
+    ├── controllers
+    │   ├── authController.js
+    │   ├── og_authController.js
+    │   ├── oldAuthController.js
+    │   ├── oldtaskController.js
+    │   └── taskController.js
+    ├── logs
+    │   ├── combined.log
+    │   └── error.log
+    ├── middleware
+    │   ├── auth.js
+    │   ├── errorHandler.js
+    │   └── validation.js
+    ├── models
+    │   ├── Task.js
+    │   └── User.js
+    ├── package-lock.json
+    ├── package.json
+    ├── routes
+    │   ├── \
+    │   ├── auth.js
+    │   ├── results.js
+    │   └── tasks.js
+    ├── server.js
+    ├── services
+    │   ├── llmRouter.js
+    │   ├── oldllmRouter.js
+    │   ├── queueManager.js
+    │   └── websocket.js
+    ├── uploads
+    │   ├── downloads
+    │   │   ├── ITR_ABCDE1234F_1762145111217.txt
+    │   │   └── ITR_ABCDE1234F_1762145185288.txt
+    └── utils
+        ├── logger.js
+        └── server
+            └── logs
