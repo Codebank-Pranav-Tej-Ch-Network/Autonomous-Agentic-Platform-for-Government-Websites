@@ -1,3 +1,13 @@
+/**
+ * API Service Layer - FIXED VERSION
+ * 
+ * FIXES:
+ * - Increased timeout to 60 seconds for LLM operations
+ * - File upload support
+ * - Better error handling
+ * - Request/response interceptors for debugging
+ */
+
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
@@ -5,57 +15,142 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 60000, // CRITICAL FIX: 60 seconds timeout (was 30s)
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Handle response errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
+// Request interceptor - add auth token to all requests
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Log request for debugging
+    console.log(`[API] ${config.method.toUpperCase()} ${config.url}`, {
+      params: config.params,
+      data: config.data
+    });
+    
+    return config;
+  },
+  (error) => {
+    console.error('[API] Request error:', error);
     return Promise.reject(error);
   }
 );
 
+// Response interceptor - handle common errors
+api.interceptors.response.use(
+  (response) => {
+    console.log(`[API] Response from ${response.config.url}:`, response.data);
+    return response;
+  },
+  (error) => {
+    console.error('[API] Response error:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      message: error.response?.data?.message || error.message
+    });
+
+    // Handle 401 Unauthorized - redirect to login
+    if (error.response?.status === 401) {
+      localStorage.removeItem('authToken');
+      window.location.href = '/';
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+/**
+ * Authentication APIs
+ */
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
+  
   login: (data) => api.post('/auth/login', data),
-  logout: () => api.post('/auth/logout'),
+  
   getProfile: () => api.get('/auth/profile'),
-  updateProfile: (data) => api.put('/auth/profile', data)
+  
+  updateProfile: (data) => {
+    console.log('[authAPI] Updating profile with data:', data);
+    return api.put('/auth/profile', data);
+  },
+  
+  logout: () => api.post('/auth/logout')
 };
 
+/**
+ * Task APIs
+ */
 export const taskAPI = {
-  create: (data) => api.post('/tasks/create', data),
-  clarify: (data) => api.post('/tasks/clarify', data),
-  getAll: (params) => api.get('/tasks', { params }),
-  getById: (id) => api.get(`/tasks/${id}`),
-  getStatus: (id) => api.get(`/tasks/${id}/status`),
-  cancel: (id) => api.post(`/tasks/${id}/cancel`),
-  retry: (id) => api.post(`/tasks/${id}/retry`),
-  getActive: () => api.get('/tasks/active')
-};
+  /**
+   * Create new task from natural language
+   * FIXED: Support for extended timeout and file uploads
+   */
+  create: (data, config = {}) => {
+    return api.post('/tasks/create', data, {
+      timeout: config.timeout || 60000, // 60 seconds
+      ...config
+    });
+  },
 
-export const resultAPI = {
-  getByTaskId: (taskId) => api.get(`/results/task/${taskId}`),
-  downloadFile: (taskId, fileId) => api.get(`/results/download/${taskId}/${fileId}`, {
-    responseType: 'blob'
-  })
+  /**
+   * Handle clarification response
+   * FIXED: Extended timeout
+   */
+  clarify: (data, config = {}) => {
+    return api.post('/tasks/clarify', data, {
+      timeout: config.timeout || 60000,
+      ...config
+    });
+  },
+
+  /**
+   * NEW: Extract data from uploaded files using Gemini Vision
+   */
+  extractDataFromFiles: (formData) => {
+    return api.post('/tasks/extract-data', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 90000 // 90 seconds for file processing
+    });
+  },
+
+  /**
+   * Get all tasks for current user
+   */
+  getAll: (params) => api.get('/tasks', { params }),
+
+  /**
+   * Get active tasks
+   */
+  getActive: () => api.get('/tasks/active'),
+
+  /**
+   * Get task by ID
+   */
+  getById: (id) => api.get(`/tasks/${id}`),
+
+  /**
+   * Get task status (lightweight)
+   */
+  getStatus: (id) => api.get(`/tasks/${id}/status`),
+
+  /**
+   * Cancel task
+   */
+  cancel: (id) => api.post(`/tasks/${id}/cancel`),
+
+  /**
+   * Retry failed task
+   */
+  retry: (id) => api.post(`/tasks/${id}/retry`)
 };
 
 export default api;
