@@ -101,20 +101,24 @@ taskQueue.process(async (job) => {
     }
 
     // Create progress callback
-    // The automation script will call this to report progress
     const progressCallback = (progressData) => {
-      // Update task in database
-      task.addProgressUpdate(
-        progressData.message,
-        'in_progress',
-        progressData.message
-      );
+      // Handle different types of progress events
+      if (progressData.type === 'needs_input') {
+        // Emit input request to user
+        emitNeedsInput(task.user.toString(), progressData);
+      } else {
+        // Regular progress update
+        task.addProgressUpdate(
+          progressData.message,
+          'in_progress',
+          progressData.message
+        );
 
-      // Emit to user via WebSocket
-      emitTaskProgress(task.user.toString(), {
-        taskId: task._id,
-        ...progressData
-      });
+        emitTaskProgress(task.user.toString(), {
+          taskId: task._id,
+          ...progressData
+        });
+      }
     };
 
     // Execute the automation script
@@ -158,7 +162,6 @@ taskQueue.process(async (job) => {
     throw error;
   }
 });
-
 /**
  * Event listeners for queue monitoring
  * These help you understand what's happening with your queue
