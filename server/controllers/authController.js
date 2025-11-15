@@ -186,18 +186,21 @@ exports.getProfile = async (req, res, next) => {
 /**
  * SIMPLIFIED: Direct field updates
  */
+/**
+ * COMPLETELY REWRITTEN: Proper nested object updates
+ */
 exports.updateProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const updates = req.body;
 
     console.log('═══════════════════════════════════════');
-    console.log('🔍 PROFILE UPDATE DEBUG START');
-    console.log('═══════════════════════════════════════');
+    console.log('🔍 PROFILE UPDATE DEBUG');
     console.log('User ID:', userId);
-    console.log('Raw request body:', JSON.stringify(updates, null, 2));
+    console.log('Updates received:', JSON.stringify(updates, null, 2));
 
     const user = await User.findById(userId);
+    
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -210,65 +213,112 @@ exports.updateProfile = async (req, res, next) => {
     console.log('  - UAN:', user.governmentIds?.uan);
     console.log('  - Profile %:', user.profileCompleteness);
 
-    // Process each update
-    for (const [key, value] of Object.entries(updates)) {
-      console.log(`\n🔄 Processing: ${key} = ${value}`);
-
-      if (key === 'governmentIds.aadhaar') {
-        if (!user.governmentIds) user.governmentIds = {};
-        user.governmentIds.aadhaar = value;
-        console.log('✅ Set Aadhaar:', value);
-      } 
-      else if (key === 'governmentIds.uan') {
-        if (!user.governmentIds) user.governmentIds = {};
-        user.governmentIds.uan = value;
-        console.log('✅ Set UAN:', value);
+    // ✅ FIX: Handle personalInfo updates carefully
+    if (updates.personalInfo) {
+      // Initialize personalInfo if it doesn't exist
+      if (!user.personalInfo) {
+        user.personalInfo = {};
       }
-      else if (key.startsWith('personalInfo.')) {
-        const parts = key.split('.');
-        if (parts.length === 2) {
-          const field = parts[1];
-          if (!user.personalInfo) user.personalInfo = {};
-          user.personalInfo[field] = value;
-          console.log(`✅ Set personalInfo.${field}`);
-        } else if (parts.length === 3) {
-          const subfield = parts[2];
-          if (!user.personalInfo) user.personalInfo = {};
-          if (!user.personalInfo.address) user.personalInfo.address = {};
-          user.personalInfo.address[subfield] = value;
-          console.log(`✅ Set address.${subfield}`);
+
+      // Update top-level personalInfo fields
+      if (updates.personalInfo.fullName !== undefined) {
+        user.personalInfo.fullName = updates.personalInfo.fullName;
+      }
+      if (updates.personalInfo.dateOfBirth !== undefined) {
+        user.personalInfo.dateOfBirth = updates.personalInfo.dateOfBirth;
+      }
+      if (updates.personalInfo.mobile !== undefined) {
+        user.personalInfo.mobile = updates.personalInfo.mobile;
+      }
+
+      // ✅ CRITICAL FIX: Only update address if it's provided AND not undefined
+      if (updates.personalInfo.address && typeof updates.personalInfo.address === 'object') {
+        // Initialize address if it doesn't exist
+        if (!user.personalInfo.address) {
+          user.personalInfo.address = {};
+        }
+        
+        // Merge address fields
+        if (updates.personalInfo.address.line1 !== undefined) {
+          user.personalInfo.address.line1 = updates.personalInfo.address.line1;
+        }
+        if (updates.personalInfo.address.line2 !== undefined) {
+          user.personalInfo.address.line2 = updates.personalInfo.address.line2;
+        }
+        if (updates.personalInfo.address.city !== undefined) {
+          user.personalInfo.address.city = updates.personalInfo.address.city;
+        }
+        if (updates.personalInfo.address.state !== undefined) {
+          user.personalInfo.address.state = updates.personalInfo.address.state;
+        }
+        if (updates.personalInfo.address.pincode !== undefined) {
+          user.personalInfo.address.pincode = updates.personalInfo.address.pincode;
         }
       }
-      else if (key === 'bankDetails') {
-        user.bankDetails = value;
-        console.log('✅ Set bankDetails');
+      
+      console.log('✅ Updated personalInfo');
+    }
+
+    // ✅ Handle governmentIds updates
+    if (updates.governmentIds) {
+      // Initialize governmentIds if it doesn't exist
+      if (!user.governmentIds) {
+        user.governmentIds = {};
+      }
+
+      // Preserve PAN (it never changes after registration)
+      // Only update Aadhaar and UAN if provided
+      if (updates.governmentIds.aadhaar !== undefined && updates.governmentIds.aadhaar !== '') {
+        user.governmentIds.aadhaar = updates.governmentIds.aadhaar;
+        console.log('✅ Updated Aadhaar:', updates.governmentIds.aadhaar);
+      }
+      
+      if (updates.governmentIds.uan !== undefined && updates.governmentIds.uan !== '') {
+        user.governmentIds.uan = updates.governmentIds.uan;
+        console.log('✅ Updated UAN:', updates.governmentIds.uan);
       }
     }
 
-    user.markModified('governmentIds');
-    user.markModified('personalInfo');
+    // ✅ Handle bankDetails updates
+    if (updates.bankDetails) {
+      user.bankDetails = updates.bankDetails;
+      console.log('✅ Updated bankDetails');
+    }
 
-    console.log('\n💾 Saving...');
+    // Mark modified for Mongoose
+    user.markModified('personalInfo');
+    user.markModified('governmentIds');
+    
+    console.log('💾 Saving user...');
     await user.save();
 
-    // Verify
-    const verifyUser = await User.findById(userId);
-    console.log('\n✅ AFTER save:');
-    console.log('  - Aadhaar:', verifyUser.governmentIds?.aadhaar);
-    console.log('  - UAN:', verifyUser.governmentIds?.uan);
-    console.log('  - Profile %:', verifyUser.profileCompleteness);
+    // Verify save
+    const updated = await User.findById(userId);
+    console.log('✅ Saved successfully!');
+    console.log('📊 AFTER save:');
+    console.log('  - Aadhaar:', updated.governmentIds?.aadhaar);
+    console.log('  - UAN:', updated.governmentIds?.uan);
+    console.log('  - Profile completeness:', updated.profileCompleteness + '%');
     console.log('═══════════════════════════════════════\n');
 
     res.json({
       success: true,
       message: 'Profile updated successfully',
       data: {
-        profileCompleteness: verifyUser.profileCompleteness,
-        updatedFields: {
-          hasAadhaar: !!verifyUser.governmentIds?.aadhaar,
-          aadhaarValue: verifyUser.governmentIds?.aadhaar,
-          hasUAN: !!verifyUser.governmentIds?.uan,
-          uanValue: verifyUser.governmentIds?.uan
+        profileCompleteness: updated.profileCompleteness,
+        user: {
+          id: updated._id,
+          email: updated.email,
+          personalInfo: updated.personalInfo,
+          governmentIds: {
+            pan: updated.governmentIds?.pan,
+            aadhaar: updated.governmentIds?.aadhaar,
+            uan: updated.governmentIds?.uan,
+            hasAadhaar: !!updated.governmentIds?.aadhaar,
+            hasUAN: !!updated.governmentIds?.uan
+          },
+          bankDetails: updated.bankDetails,
+          profileCompleteness: updated.profileCompleteness
         }
       }
     });
@@ -277,10 +327,59 @@ exports.updateProfile = async (req, res, next) => {
     console.error('❌ ERROR:', error);
     logger.error('Update profile error:', error);
     
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: messages
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: error.message
     });
+  }
+};
+
+/**
+ * Get user data for automation scripts
+ * Returns sensitive data needed for government portal automation
+ */
+exports.getUserDataForAutomation = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Return all data needed for automation
+    res.json({
+      success: true,
+      data: {
+        personalInfo: {
+          fullName: user.personalInfo?.fullName,
+          dateOfBirth: user.personalInfo?.dateOfBirth,
+          mobile: user.personalInfo?.mobile,
+          address: user.personalInfo?.address
+        },
+        governmentIds: {
+          pan: user.governmentIds?.pan,
+          aadhaar: user.governmentIds?.aadhaar,  // ← Available for scripts
+          uan: user.governmentIds?.uan
+        },
+        bankDetails: user.bankDetails
+      }
+    });
+
+  } catch (error) {
+    logger.error('Get automation data error:', error);
+    next(error);
   }
 };
 

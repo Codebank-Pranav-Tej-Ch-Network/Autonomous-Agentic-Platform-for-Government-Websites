@@ -1,8 +1,6 @@
 /**
- * Task Controller - FIXED VERSION WITHOUT pdf-parse
- *
- * CRITICAL FIX: Removed pdf-parse dependency (causes Node.js 18 issues)
- * Alternative: Use Gemini Vision API for ALL file types including PDFs
+ * Task Controller - WITH USER-FRIENDLY ERROR MESSAGES
+ * NEW: Integrated errorTranslator for friendly error messages
  */
 
 const Task = require('../models/Task');
@@ -15,6 +13,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const fs = require('fs').promises;
 const path = require('path');
 const xlsx = require('xlsx');
+const errorTranslator = require('../services/errorTranslator'); // ← NEW: Error translator
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -66,19 +65,15 @@ exports.createTaskFromNaturalLanguage = async (req, res, next) => {
     } catch (llmError) {
       logger.error('LLM classification failed:', llmError);
 
-      let errorMessage = 'Unable to understand your request. ';
-
-      if (llmError.message.includes('API') || llmError.message.includes('quota')) {
-        errorMessage += 'Our AI service is temporarily unavailable. Please try again in a few moments.';
-      } else if (llmError.message.includes('timeout')) {
-        errorMessage += 'The request took too long. Please try a shorter, simpler request.';
-      } else {
-        errorMessage += 'Please try rephrasing your request or choose from the example prompts.';
-      }
+      // NEW: Use error translator for LLM errors
+      const friendlyError = await errorTranslator.translateError(llmError.message, {
+        taskType: 'classification',
+        step: 'Understanding your request'
+      });
 
       return res.status(500).json({
         success: false,
-        message: errorMessage,
+        message: friendlyError,
         technicalDetails: process.env.NODE_ENV === 'development' ? llmError.message : undefined
       });
     }
@@ -163,9 +158,15 @@ exports.createTaskFromNaturalLanguage = async (req, res, next) => {
       stack: error.stack
     });
 
+    // NEW: Translate general errors
+    const friendlyError = await errorTranslator.translateError(error.message, {
+      taskType: 'task_creation',
+      step: 'Creating your task'
+    });
+
     return res.status(500).json({
       success: false,
-      message: 'An error occurred while processing your request. Please try again.',
+      message: friendlyError,
       technicalDetails: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
@@ -212,13 +213,22 @@ exports.handleClarificationResponse = async (req, res, next) => {
           previousExtractedParams: previousContext.extractedParams || {}
         }
       );
+      console.log('🔍 DEBUG: Previous params:', previousContext.extractedParams);
+      console.log('🔍 DEBUG: New classification:', classification.extractedParams);
+      console.log('🔍 DEBUG: Missing fields:', classification.missingFields);
 
     } catch (llmError) {
       logger.error('LLM classification failed on clarification:', llmError);
 
+      // NEW: Translate clarification errors
+      const friendlyError = await errorTranslator.translateError(llmError.message, {
+        taskType: 'clarification',
+        step: 'Processing your response'
+      });
+
       return res.status(500).json({
         success: false,
-        message: 'Unable to process your response. Please try rephrasing or start over.',
+        message: friendlyError,
         technicalDetails: process.env.NODE_ENV === 'development' ? llmError.message : undefined
       });
     }
@@ -273,9 +283,15 @@ exports.handleClarificationResponse = async (req, res, next) => {
   } catch (error) {
     logger.error('Error in handleClarificationResponse:', error);
 
+    // NEW: Translate errors
+    const friendlyError = await errorTranslator.translateError(error.message, {
+      taskType: 'clarification',
+      step: 'Processing your response'
+    });
+
     return res.status(500).json({
       success: false,
-      message: 'An error occurred while processing your response. Please try again.',
+      message: friendlyError,
       technicalDetails: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
@@ -336,15 +352,21 @@ exports.createTaskWithFullData = async (userId, taskType, inputData, req) => {
     } catch (queueError) {
       logger.error('Failed to add task to queue', { taskId: task._id, error: queueError });
 
+      // NEW: Translate queue errors
+      const friendlyError = await errorTranslator.translateError(queueError.message, {
+        taskType: taskType,
+        step: 'Queueing your task'
+      });
+
       task.status = 'failed';
       task.error = {
         code: 'QUEUE_ERROR',
-        message: 'Failed to queue task for processing',
+        message: friendlyError, // ← NEW: User-friendly error
         timestamp: new Date()
       };
       await task.save();
 
-      throw new Error('Failed to queue task for processing. Please try again.');
+      throw new Error(friendlyError);
     }
 
     return task;
@@ -356,8 +378,7 @@ exports.createTaskWithFullData = async (userId, taskType, inputData, req) => {
 };
 
 /**
- * FIXED: Extract data from uploaded files using ONLY Gemini
- * No pdf-parse dependency needed!
+ * Extract data from uploaded files using ONLY Gemini
  */
 exports.extractDataFromFiles = async (req, res, next) => {
   try {
@@ -385,11 +406,9 @@ exports.extractDataFromFiles = async (req, res, next) => {
       try {
         let text = '';
 
-        // FIXED: Use appropriate method based on file type
         if (file.mimetype.includes('sheet') || file.mimetype.includes('excel')) {
           text = await extractTextFromExcel(file.path);
         } else {
-          // For PDFs and images, use Gemini Vision API
           text = await extractTextWithGemini(file.path, file.mimetype);
         }
 
@@ -413,7 +432,6 @@ exports.extractDataFromFiles = async (req, res, next) => {
           extractedData.taxPaid = structured.taxPaid;
         }
 
-        // Clean up uploaded file
         await fs.unlink(file.path);
 
       } catch (fileError) {
@@ -437,13 +455,20 @@ exports.extractDataFromFiles = async (req, res, next) => {
 
   } catch (error) {
     logger.error('Error in extractDataFromFiles:', error);
-    next(error);
+    
+    // NEW: Translate file extraction errors
+    const friendlyError = await errorTranslator.translateError(error.message, {
+      taskType: 'file_upload',
+      step: 'Reading your documents'
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: friendlyError
+    });
   }
 };
 
-/**
- * FIXED: Extract text from Excel (xlsx package works fine)
- */
 async function extractTextFromExcel(filePath) {
   const workbook = xlsx.readFile(filePath);
   let text = '';
@@ -460,10 +485,6 @@ async function extractTextFromExcel(filePath) {
   return text;
 }
 
-/**
- * FIXED: Extract text from ANY file using Gemini Vision/Document API
- * Works for PDFs, images, and more!
- */
 async function extractTextWithGemini(filePath, mimeType) {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
@@ -490,9 +511,6 @@ async function extractTextWithGemini(filePath, mimeType) {
   }
 }
 
-/**
- * Use Gemini to extract structured financial data
- */
 async function extractFinancialDataWithGemini(text) {
   try {
     const model = genAI.getGenerativeModel({
@@ -543,8 +561,6 @@ JSON:`;
     return { salary: null, deductions: null, otherIncome: null, taxPaid: null };
   }
 }
-
-// ... REST OF THE METHODS (getAllTasks, getTaskById, etc.) ...
 
 exports.getAllTasks = async (req, res, next) => {
   try {
@@ -773,8 +789,29 @@ exports.retryTask = async (req, res, next) => {
   }
 };
 
+// NEW: Test endpoint for error translation
+exports.testErrorTranslation = async (req, res) => {
+  try {
+    const technicalError = "page.selectOption: Timeout 60000ms exceeded. Call log: waiting for locator('select[name=\"itrType\"]')";
+    
+    const friendlyError = await errorTranslator.translateError(technicalError, {
+      taskType: 'itr_filing',
+      step: 'Selecting ITR form'
+    });
+    
+    res.json({
+      technical: technicalError,
+      friendly: friendlyError
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 function generateConversationId() {
   return `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
 module.exports = exports;
+
