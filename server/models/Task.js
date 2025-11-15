@@ -88,6 +88,23 @@ const taskSchema = new mongoose.Schema({
     success: Boolean,
     message: String,
     data: mongoose.Schema.Types.Mixed,  // Could be file paths, URLs, extracted data, etc.
+    ackNumber: String,        // ITR acknowledgement number
+  filedDate: Date,          // When ITR was filed
+  assessmentYear: String,   // e.g., "2024-25"
+  itrType: String,          // e.g., "ITR-1"
+  totalIncome: Number,      // Total income filed
+  taxPaid: Number,          // Tax paid
+  refundAmount: Number,     // Refund amount if any
+  documents: [{             // PDF downloads
+    type: {
+      type: String,
+      enum: ['itr-v', 'acknowledgement', 'form', 'computation']
+    },
+    filename: String,
+    path: String,
+    url: String,
+    uploadedAt: { type: Date, default: Date.now }
+  }],
     generatedFiles: [{
       filename: String,
       path: String,

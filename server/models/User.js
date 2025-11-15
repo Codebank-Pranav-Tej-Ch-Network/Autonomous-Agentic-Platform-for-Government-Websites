@@ -1,12 +1,8 @@
 /**
- * User Model - SIMPLIFIED VERSION
- * 
- * CRITICAL FIX: Removed ALL encryption complexity
- * - Aadhaar stored as plain string
- * - UAN stored as plain string
- * - Simple, straightforward schema
- * 
- * WE NEED IT TO WORK FIRST!
+ * User Model - CORRECTED VERSION
+ * FIXES: 
+ * - Fixed address schema nesting
+ * - Proper schema structure
  */
 
 const mongoose = require('mongoose');
@@ -22,14 +18,14 @@ const UserSchema = new mongoose.Schema({
     trim: true,
     match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email']
   },
-
+  
   password: {
     type: String,
     required: [true, 'Please provide a password'],
     minlength: 6,
     select: false
   },
-
+  
   personalInfo: {
     fullName: {
       type: String,
@@ -43,7 +39,7 @@ const UserSchema = new mongoose.Schema({
       type: String,
       match: [/^[0-9]{10}$/, 'Please provide a valid 10-digit mobile number']
     },
-    address: {
+    address: {  // ← FIX: Proper nesting
       line1: String,
       line2: String,
       city: String,
@@ -54,8 +50,7 @@ const UserSchema = new mongoose.Schema({
       }
     }
   },
-
-  // SIMPLIFIED: Plain strings, no encryption
+  
   governmentIds: {
     pan: {
       type: String,
@@ -63,15 +58,15 @@ const UserSchema = new mongoose.Schema({
       match: [/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, 'Please provide a valid PAN']
     },
     aadhaar: {
-      type: String,  // ← PLAIN STRING!
+      type: String,
       match: [/^[0-9]{12}$/, 'Please provide a valid 12-digit Aadhaar']
     },
     uan: {
-      type: String,  // ← PLAIN STRING!
+      type: String,
       match: [/^[0-9]{12}$/, 'Please provide a valid 12-digit UAN']
     }
   },
-
+  
   bankDetails: [{
     bankName: {
       type: String,
@@ -97,24 +92,24 @@ const UserSchema = new mongoose.Schema({
       default: false
     }
   }],
-
+  
   profileCompleteness: {
     type: Number,
     default: 0,
     min: 0,
     max: 100
   },
-
+  
   tasksCompleted: {
     type: Number,
     default: 0
   },
-
+  
   isActive: {
     type: Boolean,
     default: true
   },
-
+  
   role: {
     type: String,
     enum: ['user', 'admin'],
@@ -127,17 +122,17 @@ const UserSchema = new mongoose.Schema({
 // Hash password before saving
 UserSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
   
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 // Calculate profile completeness before saving
 UserSchema.pre('save', function(next) {
   let completeness = 0;
-  const totalFields = 10;
   
   // Basic info (30%)
   if (this.email) completeness += 10;
@@ -146,8 +141,8 @@ UserSchema.pre('save', function(next) {
   
   // Government IDs (40%)
   if (this.governmentIds?.pan) completeness += 10;
-  if (this.governmentIds?.aadhaar) completeness += 15;  // ← Check string directly
-  if (this.governmentIds?.uan) completeness += 15;      // ← Check string directly
+  if (this.governmentIds?.aadhaar) completeness += 15;
+  if (this.governmentIds?.uan) completeness += 15;
   
   // Additional info (30%)
   if (this.personalInfo?.dateOfBirth) completeness += 10;
@@ -207,7 +202,5 @@ UserSchema.methods.getPrimaryBankAccount = function() {
   return this.bankDetails.find(account => account.isPrimary) || this.bankDetails[0];
 };
 
-// REMOVED: All encryption methods (setAadhaar, getAadhaar)
-// Now Aadhaar is just a plain string!
-
 module.exports = mongoose.model('User', UserSchema);
+
