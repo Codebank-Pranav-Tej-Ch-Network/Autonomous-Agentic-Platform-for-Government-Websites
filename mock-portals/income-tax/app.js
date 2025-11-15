@@ -16,7 +16,7 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 4001;
-
+const PDFDocument = require('pdfkit');
 // Configure Express middleware
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -147,6 +147,14 @@ app.get('/e-file', requireAuth, (req, res) => {
   });
 });
 
+// ITR Selection page - direct access route for automation
+app.get('/itr-selection', requireAuth, (req, res) => {
+  res.render('itr-selection', {
+    title: 'File Income Tax Return',
+    user: req.session.user
+  });
+});
+
 // ITR form selection and initialization
 app.get('/file-itr', requireAuth, (req, res) => {
   res.render('itr-selection', {
@@ -177,7 +185,6 @@ app.post('/itr-form', requireAuth, (req, res) => {
     itrType
   });
 });
-
 // Handle ITR form submission
 app.post('/itr-submit', requireAuth, (req, res) => {
   const formData = req.body;
@@ -186,13 +193,21 @@ app.post('/itr-submit', requireAuth, (req, res) => {
   const timestamp = Date.now();
   const ackNumber = `ITR${timestamp}${Math.floor(Math.random() * 1000)}`;
   
-  // Store submission data in session
+  // Store submission data in session WITH filed data
   req.session.acknowledgement = {
     number: ackNumber,
     data: formData,
     timestamp: new Date(),
     assessmentYear: req.session.itrData?.assessmentYear || '2024-25',
-    itrType: req.session.itrData?.itrType || 'ITR1'
+    itrType: req.session.itrData?.itrType || 'ITR1',
+    // ✅ ADD THIS SECTION - Extract user's filed data
+    filedData: {
+      salaryIncome: formData.salaryIncome,
+      deductions: formData.deductions || formData.deduction80C,
+      bankName: formData.bankName,
+      accountNumber: formData.accountNumber,
+      ifscCode: formData.ifscCode
+    }
   };
   
   res.render('itr-success', {
@@ -202,50 +217,73 @@ app.post('/itr-submit', requireAuth, (req, res) => {
   });
 });
 
-// Download ITR-V acknowledgement
-app.get('/download-itr-v', requireAuth, (req, res) => {
-  if (!req.session.acknowledgement) {
-    return res.redirect('/dashboard');
-  }
-  
-  const ack = req.session.acknowledgement;
-  
-  // Generate a simple text file as ITR-V
-  // In a real system, this would be a properly formatted PDF
-  const itrVContent = `
-═══════════════════════════════════════════════════════════════
-           INCOME TAX DEPARTMENT - GOVERNMENT OF INDIA
-                     ITR-V ACKNOWLEDGEMENT
-═══════════════════════════════════════════════════════════════
-
-Acknowledgement Number: ${ack.number}
-Date & Time: ${ack.timestamp.toLocaleString('en-IN')}
-
-Assessment Year: ${ack.assessmentYear}
-ITR Form: ${ack.itrType}
-
-Name: ${req.session.user.name}
-PAN: ${req.session.user.pan}
-
-This is an electronically generated acknowledgement and does not
-require a physical signature.
-
-Important: This acknowledgement must be verified within 120 days
-of filing by either:
-1. Sending a signed copy to CPC, Bangalore
-2. Verifying electronically using Aadhaar OTP
-3. Verifying through Net Banking
-
-For queries, visit: www.incometax.gov.in
-═══════════════════════════════════════════════════════════════
-  `.trim();
-  
-  // Set headers for file download
-  res.setHeader('Content-Type', 'text/plain');
-  res.setHeader('Content-Disposition', `attachment; filename=ITR-V_${ack.number}.txt`);
-  res.send(itrVContent);
+app.get('/mock-download-itr-v', (req, res) => {
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', 'attachment; filename=ITR-V_Mock.pdf');
+  res.send(Buffer.from('Mock ITR-V PDF Content'));
 });
 
+// Dynamic PDF generation route
+app.get('/download-itr-v', (req, res) => {
+  if (!req.session.acknowledgement) {
+    return res.status(404).send('No ITR filing found in session');
+  }
+
+  const ack = req.session.acknowledgement;
+  const user = req.session.user;
+  
+  // Create PDF
+  const doc = new PDFDocument({ margin: 50 });
+  
+  // Set response headers
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename=ITR-V_${ack.number}.pdf`);
+  
+  // Pipe PDF to response
+  doc.pipe(res);
+  
+  // Add content
+  doc.fontSize(20).text('INCOME TAX DEPARTMENT', { align: 'center' });
+  doc.fontSize(16).text('ITR-V Acknowledgement', { align: 'center' });
+  doc.moveDown();
+  
+  // Add border
+  doc.rect(50, doc.y, 500, 350).stroke();
+  doc.moveDown(0.5);
+  
+  // Acknowledgement details
+  doc.fontSize(14).text(`Acknowledgement Number: ${ack.number}`, { bold: true });
+  doc.moveDown(0.5);
+  doc.fontSize(12).text(`PAN: ${user.pan}`);
+  doc.text(`Name: ${user.name}`);
+  doc.text(`Assessment Year: ${ack.assessmentYear}`);
+  doc.text(`ITR Form: ${ack.itrType}`);
+  doc.text(`Filing Date: ${ack.timestamp.toLocaleDateString('en-IN')}`);
+  doc.moveDown();
+  
+  // Filed data
+  doc.fontSize(14).text('Filed Information:', { underline: true });
+  doc.moveDown(0.3);
+  doc.fontSize(11);
+  
+  if (ack.filedData) {
+    doc.text(`Salary Income: ₹${ack.filedData.salaryIncome?.toLocaleString('en-IN') || 'N/A'}`);
+    doc.text(`Deductions: ₹${ack.filedData.deductions?.toLocaleString('en-IN') || 'N/A'}`);
+    doc.text(`Bank Name: ${ack.filedData.bankName || 'N/A'}`);
+    doc.text(`Account Number: ${ack.filedData.accountNumber || 'N/A'}`);
+    doc.text(`IFSC Code: ${ack.filedData.ifscCode || 'N/A'}`);
+  }
+  
+  doc.moveDown();
+  doc.fontSize(10).text('This is a system generated acknowledgement.', { align: 'center', italics: true });
+  doc.text('Please verify your return within 120 days.', { align: 'center', italics: true });
+  
+  // Footer
+  doc.fontSize(8).text(`Generated on: ${new Date().toLocaleString('en-IN')}`, 50, 700, { align: 'center' });
+  
+  // Finalize PDF
+  doc.end();
+});
 // Logout
 app.get('/logout', (req, res) => {
   req.session.destroy((err) => {
