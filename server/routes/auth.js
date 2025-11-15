@@ -64,6 +64,19 @@ router.put(
 );
 
 /**
+ * GET /api/v1/auth/automation-data
+ * Get user data needed for automation scripts
+ * 
+ * Requires: Authentication
+ * Returns: All user data including sensitive fields for automation
+ */
+router.get(
+  '/automation-data',
+  protect,
+  authController.getUserDataForAutomation
+);
+
+/**
  * POST /api/v1/auth/logout
  * Logout current user
  * 

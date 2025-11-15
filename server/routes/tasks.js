@@ -157,4 +157,33 @@ router.post(
   taskController.retryTask
 );
 
+// Get ITR filing history
+/**
+ * GET /api/v1/tasks/history/itr
+ * Get ITR filing history for authenticated user
+ *
+ * Returns: List of completed ITR filings
+ */
+router.get('/history/itr', async (req, res) => {
+  try {
+    const Task = require('../models/Task');  // Add import here
+    
+    const history = await Task.find({
+      user: req.user.id,
+      taskType: 'itr_filing',
+      status: 'completed'
+    })
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .select('result createdAt completedAt inputData');
+
+    res.json({ success: true, history });
+
+  } catch (error) {
+    console.error('History fetch error:', error);  // Use console.error instead of logger
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
 module.exports = router;
+
