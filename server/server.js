@@ -27,6 +27,7 @@ const { connectDB } = require('./config/database')
 const logger = require('./utils/logger');
 const { errorHandler } = require('./middleware/errorHandler');
 const { setupWebSocket } = require('./services/websocket');
+const downloadRoutes = require('./routes/downloads');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -96,6 +97,8 @@ app.use((req, res, next) => {
   });
   next();
 });
+
+app.use('/api/v1/downloads', downloadRoutes);
 
 /**
  * DATABASE CONNECTION
