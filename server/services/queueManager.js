@@ -34,18 +34,26 @@ const executeEPFO = require('../automation/scripts/epfo');
  * Bull can use an in-memory store (but you lose persistence across restarts).
  */
 const taskQueue = new Bull('automation-tasks', {
-  redis: process.env.REDIS_URL || {
+  redis: {
     host: '127.0.0.1',
-    port: 6379
+    port: 6379,
+    maxRetriesPerRequest: 3,
+    enableReadyCheck: false,
+    retryStrategy: (times) => {
+      if (times > 3) {
+        return null;
+      }
+      return Math.min(times * 50, 2000);
+    }
   },
   defaultJobOptions: {
-    attempts: 3,              // Retry failed jobs up to 3 times
+    attempts: 3,
     backoff: {
-      type: 'exponential',    // Wait longer between each retry
-      delay: 5000             // Start with 5 second delay
+      type: 'exponential',
+      delay: 5000
     },
-    removeOnComplete: false,  // Keep completed jobs for history
-    removeOnFail: false       // Keep failed jobs for debugging
+    removeOnComplete: false,
+    removeOnFail: false
   }
 });
 

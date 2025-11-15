@@ -193,73 +193,27 @@ Respond with JSON:
 }`;
 }
 
-_parseResponse(text) {
-  try {
-    // ✅ NEW: Log raw response for debugging
-    console.log('📄 Raw LLM response (first 500 chars):');
-    console.log(text.substring(0, 500));
-    console.log('---');
-    
-    let cleanText = text.trim();
-    
-    // Remove markdown code blocks
-    cleanText = cleanText.replace(/``````\n?/g, '');
-    
-    // Remove any text before first {
-    const firstBrace = cleanText.indexOf('{');
-    if (firstBrace > 0) {
-      console.log(`Removing ${firstBrace} chars before first {`);
-      cleanText = cleanText.substring(firstBrace);
-    }
-    
-    // Remove any text after last }
-    const lastBrace = cleanText.lastIndexOf('}');
-    if (lastBrace > 0 && lastBrace < cleanText.length - 1) {
-      console.log(`Removing ${cleanText.length - lastBrace - 1} chars after last }`);
-      cleanText = cleanText.substring(0, lastBrace + 1);
-    }
-    
-    console.log('🔧 Cleaned JSON (first 300 chars):');
-    console.log(cleanText.substring(0, 300));
-    
-    const parsed = JSON.parse(cleanText);
-    console.log('✅ JSON parsed successfully');
-    return this._validateClassification(parsed);
-    
-  } catch (e) {
-    console.error('❌ Direct parse failed, trying regex extraction...');
-    
-    // Try extracting JSON with regex
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        console.log('Found JSON with regex, attempting parse...');
-        const parsed = JSON.parse(jsonMatch[0]);
-        console.log('✅ Regex extraction successful');
-        return this._validateClassification(parsed);
-      } catch (e2) {
-        console.error('❌ Regex extraction also failed');
+  _parseResponse(text) {
+    try {
+      let cleanText = text.trim();
+      cleanText = cleanText.replace(/``````\n?/g, '');
+      
+      const parsed = JSON.parse(cleanText);
+      return this._validateClassification(parsed);
+      
+    } catch (e) {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return this._validateClassification(parsed);
+        } catch (e2) {
+          logger.error('Parse failed:', { text });
+        }
       }
+      throw new Error('Could not parse response');
     }
-    
-    // Last resort: try to find any JSON-like structure
-    const possibleJSON = text.match(/\{[^{}]*"taskType"[^{}]*\}/);
-    if (possibleJSON) {
-      try {
-        console.log('Trying minimal JSON extraction...');
-        const parsed = JSON.parse(possibleJSON[0]);
-        console.log('✅ Minimal extraction successful');
-        return this._validateClassification(parsed);
-      } catch (e3) {
-        console.error('❌ All parsing attempts failed');
-      }
-    }
-    
-    console.error('❌ COMPLETE RAW RESPONSE:');
-    console.error(text);
-    throw new Error('Could not parse response');
   }
-}
 
   _validateClassification(obj) {
     if (!obj.taskType || !Object.keys(TASK_CONFIGURATIONS).includes(obj.taskType)) {
