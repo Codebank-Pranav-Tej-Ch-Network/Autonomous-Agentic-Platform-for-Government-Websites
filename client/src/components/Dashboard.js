@@ -1,16 +1,16 @@
 /**
- * Dashboard - WITH CONVERSATION PERSISTENCE & NO FULL REFRESH
+ * Dashboard - WITH USER-FRIENDLY ERROR MESSAGES
  * 
- * FIXES:
- * - Conversations saved to localStorage
- * - Only task list refreshes, NOT entire page
- * - Conversation history persists across refreshes
- * - Better UI/UX for chat history
+ * NEW FEATURES:
+ * - Displays friendly error messages from backend
+ * - Chat history persistence
+ * - No full page refresh
+ * - Better error UI/UX
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Clock, CheckCircle, XCircle, User, AlertTriangle, MessageSquare, Trash2, X } from 'lucide-react';
+import { Activity, Clock, CheckCircle, XCircle, User, AlertTriangle, MessageSquare, Trash2, X, AlertCircle } from 'lucide-react';
 import TaskSelector from './Taskselector';
 import AgentStatus from './AgentStatus';
 import ResultsPanel from './ResultsPanel';
@@ -70,7 +70,7 @@ export default function Dashboard() {
     try {
       const tasksResponse = await taskAPI.getAll({ page: 1, limit: 50 });
       const fetchedTasks = tasksResponse.data.data;
-      
+
       setTasks(fetchedTasks);
 
       if (activeTask) {
@@ -121,7 +121,7 @@ export default function Dashboard() {
 
     const handleTaskProgress = (data) => {
       console.log('[Dashboard] Task progress:', data);
-      
+
       setTasks(prev => prev.map(task =>
         task._id === data.taskId ? { ...task, status: data.status, progress: data.percentage } : task
       ));
@@ -130,18 +130,17 @@ export default function Dashboard() {
         setActiveTask(prev => ({ ...prev, status: data.status, progress: data.percentage }));
       }
 
-      // Light refresh after 2 seconds
       setTimeout(() => loadTasks(), 2000);
     };
 
     const handleTaskCompleted = (data) => {
       console.log('[Dashboard] Task completed:', data);
       toast.success(`Task completed successfully!`);
-      
+
       setTasks(prev => prev.map(task =>
         task._id === data.taskId ? { ...task, status: 'completed', progress: 100 } : task
       ));
-      
+
       if (activeTask?._id === data.taskId) {
         setActiveTask(prev => ({ ...prev, status: 'completed', progress: 100 }));
       }
@@ -151,12 +150,15 @@ export default function Dashboard() {
 
     const handleTaskFailed = (data) => {
       console.log('[Dashboard] Task failed:', data);
-      toast.error(`Task failed: ${data.error?.message || 'Unknown error'}`);
       
+      // NEW: Display friendly error message
+      const errorMessage = data.error?.message || data.error || 'Unknown error occurred';
+      toast.error(errorMessage, { autoClose: 5000 });
+
       setTasks(prev => prev.map(task =>
         task._id === data.taskId ? { ...task, status: 'failed', error: data.error } : task
       ));
-      
+
       if (activeTask?._id === data.taskId) {
         setActiveTask(prev => ({ ...prev, status: 'failed', error: data.error }));
       }
@@ -177,7 +179,7 @@ export default function Dashboard() {
 
   // Polling for active tasks (LIGHT refresh - tasks only)
   useEffect(() => {
-    const hasActiveTasks = tasks.some(t => 
+    const hasActiveTasks = tasks.some(t =>
       ['pending', 'queued', 'processing'].includes(t.status)
     );
 
@@ -187,7 +189,7 @@ export default function Dashboard() {
 
     const pollInterval = setInterval(() => {
       console.log('[Dashboard] Polling for task updates...');
-      loadTasks(); // Only reload tasks, not profile
+      loadTasks();
     }, 10000);
 
     return () => clearInterval(pollInterval);
@@ -195,15 +197,14 @@ export default function Dashboard() {
 
   const handleTaskCreated = useCallback((newTask, conversation) => {
     console.log('[Dashboard] New task created:', newTask);
-    
+
     setTasks(prev => [newTask, ...prev]);
     setActiveTask(newTask);
-    
-    // Save conversation to history
+
     if (conversation && conversation.length > 0) {
       saveConversationToHistory(conversation, newTask.taskType);
     }
-    
+
     toast.success('Task created and processing started!');
     setTimeout(() => loadTasks(), 2000);
   }, [loadTasks, saveConversationToHistory]);
@@ -216,14 +217,16 @@ export default function Dashboard() {
     try {
       const response = await taskAPI.retry(task._id);
       toast.success('Task retry initiated!');
-      
+
       const newTask = response.data.newTask;
       setActiveTask(newTask);
       setTasks(prev => [newTask, ...prev]);
-      
+
       setTimeout(() => loadTasks(), 2000);
     } catch (error) {
-      toast.error('Failed to retry task');
+      // NEW: Show friendly error from backend
+      const errorMessage = error.response?.data?.message || 'Failed to retry task';
+      toast.error(errorMessage);
     }
   }, [loadTasks]);
 
@@ -309,7 +312,7 @@ export default function Dashboard() {
                   Your profile is {userProfile.profileCompleteness}% complete. Complete your profile
                   to unlock all automation features.
                 </p>
-                <button 
+                <button
                   onClick={() => setShowProfileModal(true)}
                   className="mt-2 text-sm font-medium text-yellow-800 hover:text-yellow-900 underline"
                 >
@@ -331,13 +334,17 @@ export default function Dashboard() {
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <div>
-            <TaskSelector 
+            <TaskSelector
               onTaskCreated={handleTaskCreated}
               onConversationUpdate={saveConversationToHistory}
             />
           </div>
           <div>
-            {activeTask ? <AgentStatus task={activeTask} /> : <EmptyState />}
+            {activeTask ? (
+              <AgentStatus task={activeTask} />
+            ) : (
+              <EmptyState />
+            )}
           </div>
         </div>
 
@@ -360,7 +367,7 @@ export default function Dashboard() {
             window.location.href = '/';
           }}
           onProfileUpdated={() => {
-            loadProfile(); // Only reload profile, not tasks
+            loadProfile();
             toast.success('Profile updated!');
           }}
         />
@@ -442,6 +449,7 @@ function ChatHistoryModal({ chatHistory, onClose, onClear }) {
               <button
                 onClick={onClear}
                 className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                title="Clear history"
               >
                 <Trash2 className="w-5 h-5" />
               </button>
@@ -465,7 +473,10 @@ function ChatHistoryModal({ chatHistory, onClose, onClear }) {
           ) : (
             <div className="space-y-4">
               {chatHistory.map((chat) => (
-                <div key={chat.id} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                <div 
+                  key={chat.id} 
+                  className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors cursor-pointer"
+                >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -491,3 +502,4 @@ function ChatHistoryModal({ chatHistory, onClose, onClear }) {
     </motion.div>
   );
 }
+

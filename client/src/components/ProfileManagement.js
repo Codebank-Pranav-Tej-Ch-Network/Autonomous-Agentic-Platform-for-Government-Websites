@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 /**
  * ProfileManagement Component - COMPLETE & FIXED VERSION
  */
@@ -73,7 +74,7 @@ export default function ProfileManagement({ isOpen, onClose, onLogout, onProfile
         },
         governmentIds: {
           pan: userData.governmentIds?.pan || '',
-          aadhaar: '',
+          aadhaar: userData.governmentIds?.aadhaar || '',
           uan: userData.governmentIds?.uan || ''
         },
         bankDetails: userData.bankDetails || []
@@ -86,6 +87,11 @@ export default function ProfileManagement({ isOpen, onClose, onLogout, onProfile
       setLoading(false);
     }
   };
+
+/**
+ * Get user data for automation scripts
+ * Returns sensitive data needed for government portal automation
+ */
 
   const handleInputChange = (section, field, value) => {
     if (section === 'address') {
@@ -114,73 +120,100 @@ const handleSaveProfile = async () => {
   try {
     setSaving(true);
 
-    // Build payload
+    // ✅ FIX: Build proper nested objects, NOT dot-notation strings
     const updatePayload = {};
 
-    // Personal info
+    // Personal Info - Build nested structure
+    const personalInfo = {};
+    let hasPersonalUpdates = false;
+
     if (formData.personalInfo.fullName) {
-      updatePayload['personalInfo.fullName'] = formData.personalInfo.fullName;
+      personalInfo.fullName = formData.personalInfo.fullName;
+      hasPersonalUpdates = true;
     }
     if (formData.personalInfo.dateOfBirth) {
-      updatePayload['personalInfo.dateOfBirth'] = formData.personalInfo.dateOfBirth;
+      personalInfo.dateOfBirth = formData.personalInfo.dateOfBirth;
+      hasPersonalUpdates = true;
     }
     if (formData.personalInfo.mobile) {
-      updatePayload['personalInfo.mobile'] = formData.personalInfo.mobile;
+      personalInfo.mobile = formData.personalInfo.mobile;
+      hasPersonalUpdates = true;
     }
-    
-    // Address
+
+    // Address - Nested within personalInfo
+    const address = {};
+    let hasAddressUpdates = false;
+
     if (formData.personalInfo.address.line1) {
-      updatePayload['personalInfo.address.line1'] = formData.personalInfo.address.line1;
+      address.line1 = formData.personalInfo.address.line1;
+      hasAddressUpdates = true;
     }
     if (formData.personalInfo.address.line2) {
-      updatePayload['personalInfo.address.line2'] = formData.personalInfo.address.line2;
+      address.line2 = formData.personalInfo.address.line2;
+      hasAddressUpdates = true;
     }
     if (formData.personalInfo.address.city) {
-      updatePayload['personalInfo.address.city'] = formData.personalInfo.address.city;
+      address.city = formData.personalInfo.address.city;
+      hasAddressUpdates = true;
     }
     if (formData.personalInfo.address.state) {
-      updatePayload['personalInfo.address.state'] = formData.personalInfo.address.state;
+      address.state = formData.personalInfo.address.state;
+      hasAddressUpdates = true;
     }
     if (formData.personalInfo.address.pincode) {
-      updatePayload['personalInfo.address.pincode'] = formData.personalInfo.address.pincode;
+      address.pincode = formData.personalInfo.address.pincode;
+      hasAddressUpdates = true;
     }
 
-    // CRITICAL: Aadhaar - CHECK THE FIELD VALUE
+    if (hasAddressUpdates) {
+      personalInfo.address = address;
+      hasPersonalUpdates = true;
+    }
+
+    if (hasPersonalUpdates) {
+      updatePayload.personalInfo = personalInfo;
+    }
+
+    // Government IDs - Build nested structure
+    const governmentIds = {};
+    let hasGovIdUpdates = false;
+
+    // Aadhaar
     console.log('🔍 Checking Aadhaar field:', formData.governmentIds.aadhaar);
-    console.log('🔍 Aadhaar length:', formData.governmentIds.aadhaar?.length);
-    
     if (formData.governmentIds.aadhaar && formData.governmentIds.aadhaar.length === 12) {
-      updatePayload['governmentIds.aadhaar'] = formData.governmentIds.aadhaar;
-      console.log('✅ ADDED Aadhaar to payload:', formData.governmentIds.aadhaar);
+      governmentIds.aadhaar = formData.governmentIds.aadhaar;
+      hasGovIdUpdates = true;
+      console.log('✅ Adding Aadhaar to payload');
     } else {
-      console.log('❌ SKIPPED Aadhaar (not 12 digits or empty)');
+      console.log('❌ Skipping Aadhaar (not 12 digits)');
     }
 
-    // CRITICAL: UAN - CHECK THE FIELD VALUE
+    // UAN
     console.log('🔍 Checking UAN field:', formData.governmentIds.uan);
-    console.log('🔍 UAN length:', formData.governmentIds.uan?.length);
-    
-    if (formData.governmentIds.uan && formData.governmentIds.uan.trim().length > 0) {
-      updatePayload['governmentIds.uan'] = formData.governmentIds.uan.trim();
-      console.log('✅ ADDED UAN to payload:', formData.governmentIds.uan);
+    if (formData.governmentIds.uan && formData.governmentIds.uan.trim().length === 12) {
+      governmentIds.uan = formData.governmentIds.uan.trim();
+      hasGovIdUpdates = true;
+      console.log('✅ Adding UAN to payload');
     } else {
-      console.log('❌ SKIPPED UAN (empty)');
+      console.log('❌ Skipping UAN (not 12 digits)');
     }
 
-    // Bank details
+    if (hasGovIdUpdates) {
+      updatePayload.governmentIds = governmentIds;
+    }
+
+    // Bank Details
     if (formData.bankDetails && formData.bankDetails.length > 0) {
-      updatePayload['bankDetails'] = formData.bankDetails;
-      console.log('✅ ADDED Bank details:', formData.bankDetails.length, 'accounts');
+      updatePayload.bankDetails = formData.bankDetails;
+      console.log('✅ Adding bank details:', formData.bankDetails.length, 'accounts');
     }
 
     console.log('════════════════════════════════════');
-    console.log('📤 FINAL PAYLOAD TO SEND:');
+    console.log('📤 FINAL PAYLOAD (CORRECTED):');
     console.log(JSON.stringify(updatePayload, null, 2));
-    console.log('📤 Payload keys:', Object.keys(updatePayload));
     console.log('════════════════════════════════════');
 
     // Send request
-    console.log('🚀 Sending request...');
     const response = await authAPI.updateProfile(updatePayload);
     
     console.log('✅ Server response:', response.data);
@@ -188,15 +221,7 @@ const handleSaveProfile = async () => {
     toast.success('Profile updated successfully!');
     setEditMode(false);
 
-    // Clear Aadhaar field after save
-    setFormData(prev => ({
-      ...prev,
-      governmentIds: {
-        ...prev.governmentIds,
-        aadhaar: ''
-      }
-    }));
-
+    // Reload profile
     await loadProfile();
 
     if (onProfileUpdated) {

@@ -162,6 +162,38 @@ export default function AgentStatus({ task: initialTask }) {
   const statusColor = getStatusColor();
   const statusIcon = getStatusIcon();
 
+const handleDownloadResults = async () => {
+  try {
+    // Check if task has documents
+    if (!task.result?.documents || task.result.documents.length === 0) {
+      alert('No documents available for download');
+      return;
+    }
+
+    // Get the first document (ITR-V PDF)
+    const doc = task.result.documents[0];
+    
+    // Construct download URL
+    const downloadUrl = `http://localhost:5001${doc.url}`;
+    
+    console.log('Downloading from:', downloadUrl);
+    
+    // Create hidden anchor and trigger download
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = doc.filename;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    console.log('✅ Download initiated:', doc.filename);
+  } catch (error) {
+    console.error('Download failed:', error);
+    alert('Failed to download document. Please try again.');
+  }
+};
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -231,7 +263,7 @@ export default function AgentStatus({ task: initialTask }) {
                     ? 'bg-red-500'
                     : 'bg-blue-500'
                 }`} />
-                
+
                 <div className="flex-1">
                   <p className={`text-sm ${
                     item.isComplete
@@ -276,20 +308,18 @@ export default function AgentStatus({ task: initialTask }) {
           </motion.div>
         )}
 
-        {/* Download Results Button */}
+        {/* Download Results button (shown when completed) */}
         {task.status === 'completed' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-6"
+          <button
+            onClick={handleDownloadResults}
+            className="mt-6 w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors font-semibold"
           >
-            <button className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-all flex items-center justify-center gap-2">
-              <Download className="w-5 h-5" />
-              Download Results
-            </button>
-          </motion.div>
+            <Download className="w-5 h-5" />
+            Download Results
+          </button>
         )}
       </div>
     </motion.div>
   );
 }
+
