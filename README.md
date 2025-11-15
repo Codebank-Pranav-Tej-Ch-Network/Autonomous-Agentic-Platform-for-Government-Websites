@@ -17,7 +17,8 @@ govt-automation-agent/
 │       │   ├── ProfileManagement.js
 │       │   ├── ResultsPanel.js
 │       │   ├── Taskselector.js
-│       │   └── UserInputModal.js
+│       │   ├── UserInputModal.js
+
 │       ├── context
 │       ├── index.js
 │       ├── services
@@ -25,6 +26,7 @@ govt-automation-agent/
 │       │   └── websocket.js
 │       └── utils
 ├── docs
+├── main.tex
 ├── mock-portals
 │   ├── digilocker
 │   │   ├── data
@@ -73,6 +75,7 @@ govt-automation-agent/
     │   └── database.js
     ├── controllers
     │   ├── authController.js
+   
     │   └── taskController.js
     ├── logs
     │   ├── combined.log
@@ -83,24 +86,30 @@ govt-automation-agent/
     │   └── validation.js
     ├── models
     │   ├── Task.js
-    │   └── User.js
+    │   ├── User.js
     ├── package-lock.json
     ├── package.json
     ├── routes
     │   ├── \
     │   ├── auth.js
+    │   ├── downloads.js
     │   ├── results.js
     │   └── tasks.js
     ├── server.js
     ├── services
+    │   ├── '
+    │   ├── errorTranslator.js
     │   ├── llmRouter.js
-    │   ├── oldllmRouter.j
+    
     │   ├── queueManager.js
     │   └── websocket.js
+    ├── temp
     ├── uploads
     │   ├── downloads
     │   │   ├── ITR_ABCDE1234F_1762145111217.txt
     │   │   └── ITR_ABCDE1234F_1762145185288.txt
+    │   ├── files-1763150972963-868155125.png
+    │   └── screenshots
     └── utils
         ├── logger.js
         └── server
