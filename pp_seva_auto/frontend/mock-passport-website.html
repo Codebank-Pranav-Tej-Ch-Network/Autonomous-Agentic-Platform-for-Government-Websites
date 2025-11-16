@@ -451,7 +451,6 @@ user-select: none;
                 <li><a href="#" class="active" onclick="showPage(event, 'home')">Home</a></li>
                 <li><a href="#" onclick="showPage(event, 'services')">Services</a></li>
                 <li><a href="#" onclick="showPage(event, 'applications')">My Applications</a></li>
-                <li><a href="#" onclick="showPage(event, 'track')">Track Application</a></li>
                 <li><a href="#" onclick="showPage(event, 'fees')">Fee Details</a></li>
             </ul>
         </nav>
@@ -509,14 +508,6 @@ user-select: none;
                 <h2 class="page-title">My Applications</h2>
                 <div id="applicationsContent">
                     <p style="color: #666;">No applications yet</p>
-                </div>
-            </div>
-
-            <!-- Track Application -->
-            <div id="trackPage" class="page-content">
-                <h2 class="page-title">Track Application</h2>
-                <div id="trackContent">
-                    <p style="color: #666;">No applications to track</p>
                 </div>
             </div>
 
@@ -598,6 +589,30 @@ user-select: none;
                                         <label><input type="radio" name="bookletType" value="36"> 36 Pages</label>
                                         <label><input type="radio" name="bookletType" value="60"> 60 Pages</label>
                                     </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Country <span class="required">*</span></label>
+                                    <select id="country" required>
+                                        <option value="">Select Country</option>
+                                        <option value="India">India</option>
+                                        <option value="USA">USA</option>
+                                        <option value="UK">UK</option>
+                                        <option value="Canada">Canada</option>
+                                        <option value="Australia">Australia</option>
+                                        <option value="UAE">UAE</option>
+                                        <option value="Singapore">Singapore</option>
+                                        <option value="Germany">Germany</option>
+                                    </select>
+                                </div>
+
+                                <!-- For Reissue only - add passport number field -->
+                                <div class="form-group" id="reissuePassportField" style="display: none;">
+                                    <label>Current Passport Number <span class="required">*</span></label>
+                                    <input type="text" id="reissuePassportNumber" placeholder="e.g., L1234567">
+                                    <p style="font-size: 12px; color: #666; margin-top: 5px;">
+                                        ⚠️ Enter the passport number from your Fresh Passport application
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -814,21 +829,29 @@ user-select: none;
                         <div id="pcc_stage1" class="form-stage">
                             <div class="form-section">
                                 <h3>Passport Details</h3>
+                                <p style="background: #fff3cd; padding: 10px; border-radius: 5px; font-size: 13px; margin-bottom: 15px;">
+                                    ⚠️ <strong>Note:</strong> You must have applied for a Fresh Passport first. Enter your passport details from the Fresh Passport application.
+                                </p>
                                 
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label>Passport Number <span class="required">*</span></label>
-                                        <input type="text" id="pccPassportNumber" class="passportNumber" required>
+                                        <input type="text" id="pccPassportNumber" class="passportNumber" required placeholder="e.g., L1234567">
                                     </div>
                                     <div class="form-group">
-                                        <label>Date of Issue <span class="required">*</span></label>
-                                        <input type="date" id="pccPassportDate" class="passportDate" required>
+                                        <label>Country <span class="required">*</span></label>
+                                        <select id="pccCountry" class="pccCountry" required>
+                                            <option value="">Select Country</option>
+                                            <option value="India">India</option>
+                                            <option value="USA">USA</option>
+                                            <option value="UK">UK</option>
+                                            <option value="Canada">Canada</option>
+                                            <option value="Australia">Australia</option>
+                                            <option value="UAE">UAE</option>
+                                            <option value="Singapore">Singapore</option>
+                                            <option value="Germany">Germany</option>
+                                        </select>
                                     </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Country <span class="required">*</span></label>
-                                    <input type="text" id="pccCountry" class="pccCountry" required>
                                 </div>
                             </div>
                         </div>
@@ -1555,8 +1578,6 @@ user-select: none;
             
             if (page === 'applications') {
                 loadApplications();
-            } else if (page === 'track') {
-                loadTracking();
             } else if (page === 'home') {
                 loadApplications();
             }
@@ -1599,6 +1620,16 @@ user-select: none;
             if (type === 'fresh' || type === 'reissue') {
                 document.getElementById('freshStages').style.display = 'block';
                 document.getElementById('fresh_stage1').classList.add('active');
+                
+                // Show/hide passport number field based on type
+                const reissueField = document.getElementById('reissuePassportField');
+                if (reissueField) {
+                    reissueField.style.display = type === 'reissue' ? 'block' : 'none';
+                    const reissueInput = document.getElementById('reissuePassportNumber');
+                    if (reissueInput) {
+                        reissueInput.required = type === 'reissue';
+                    }
+                }
             } else if (type === 'pcc') {
                 document.getElementById('pccStages').style.display = 'block';
                 document.getElementById('pcc_stage1').classList.add('active');
@@ -1689,6 +1720,14 @@ user-select: none;
             }
         }
 
+        function generatePassportNumber() {
+            // Format: L1234567 (Letter + 7 digits)
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const letter = letters.charAt(Math.floor(Math.random() * letters.length));
+            const numbers = Math.floor(1000000 + Math.random() * 9000000);
+            return letter + numbers;
+        }
+
         function getAllFormData() {
             const data = {
                 type: currentAppType
@@ -1719,7 +1758,9 @@ user-select: none;
                 'email': 'email',
                 'emergencyName': 'emergencyName',
                 'emergencyMobile': 'emergencyMobile',
-                'emergencyAddress': 'emergencyAddress'
+                'emergencyAddress': 'emergencyAddress',
+                'country': 'country',
+                'reissuePassportNumber': 'reissuePassportNumber'
             };
             
             Object.entries(idFields).forEach(([fieldId, dataKey]) => {
@@ -1769,12 +1810,6 @@ user-select: none;
                 if (pccPassportNum && pccPassportNum.value) {
                     data.passportNumber = pccPassportNum.value.trim();
                     console.log(`✅ PCC Passport Number = ${pccPassportNum.value.trim()}`);
-                }
-                
-                const pccPassportDate = document.getElementById('pccPassportDate') || document.querySelector('.passportDate');
-                if (pccPassportDate && pccPassportDate.value) {
-                    data.passportDate = pccPassportDate.value.trim();
-                    console.log(`✅ PCC Passport Date = ${pccPassportDate.value.trim()}`);
                 }
                 
                 const pccCountry = document.getElementById('pccCountry') || document.querySelector('.pccCountry');
@@ -1833,6 +1868,28 @@ user-select: none;
             return data;
         }
 
+        function validatePassportDetails(passportNumber, country) {
+            const applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
+            const freshApp = applications.find(app => 
+                app.type === 'fresh' && 
+                app.passportNumber === passportNumber
+            );
+            
+            if (!freshApp) {
+                alert('❌ Invalid Passport Number!\n\nThis passport number does not exist. You must apply for a Fresh Passport first.');
+                return false;
+            }
+            
+            // Check if country matches
+            const freshCountry = freshApp.fullData?.country;
+            if (freshCountry && freshCountry !== country) {
+                alert(`❌ Country Mismatch!\n\nThe country you entered (${country}) does not match the country in your Fresh Passport application (${freshCountry}).\n\nPlease enter the correct country.`);
+                return false;
+            }
+            
+            return true;
+        }
+
         function verifyAndSubmit() {
             console.log('🔍 Verifying and submitting...');
             console.log('Current App Type:', currentAppType);
@@ -1874,6 +1931,39 @@ user-select: none;
             
             allFormData = getAllFormData();
             
+            // Validate passport details for PCC and Reissue
+            if (currentAppType === 'pcc') {
+                const passportNum = allFormData.passportNumber;
+                const country = allFormData.pccCountry;
+                
+                if (!validatePassportDetails(passportNum, country)) {
+                    return; // Stop submission if validation fails
+                }
+            }
+            
+            if (currentAppType === 'reissue') {
+                const country = allFormData.country;
+                const reissuePassportNum = allFormData.reissuePassportNumber;
+                
+                // For reissue, validate passport number exists and country matches
+                const applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
+                const userFreshApp = applications.find(app => 
+                    app.type === 'fresh' && 
+                    app.passportNumber === reissuePassportNum
+                );
+                
+                if (!userFreshApp) {
+                    alert('❌ Invalid Passport Number!\n\nThe passport number you entered does not exist in any Fresh Passport application.\n\nPlease enter the correct passport number from your Fresh Passport.');
+                    return;
+                }
+                
+                const freshCountry = userFreshApp.fullData?.country;
+                if (freshCountry && freshCountry !== country) {
+                    alert(`❌ Country Mismatch!\n\nThe country you entered (${country}) does not match the country in your Fresh Passport (${freshCountry}).\n\nPlease enter the correct country.`);
+                    return;
+                }
+            }
+            
             console.log('📦 Form data collected:', allFormData);
             console.log('📋 Submitting type:', currentAppType);
 
@@ -1898,15 +1988,30 @@ user-select: none;
 
             const refNum = 'ARN' + Date.now().toString().slice(-10);
             
+            // Generate passport number only for Fresh passport
+            let passportNumber;
+            if (currentAppType === 'fresh') {
+                passportNumber = generatePassportNumber();
+            } else if (currentAppType === 'pcc') {
+                // Use the passport number they entered
+                passportNumber = allFormData.passportNumber;
+            } else if (currentAppType === 'reissue') {
+                // Use the passport number they entered
+                passportNumber = allFormData.reissuePassportNumber;
+            } else {
+                passportNumber = 'N/A';
+            }
+            
             const fee = calculateApplicationFee(allFormData);
             
             const app = {
                 type: currentAppType,
                 referenceNumber: refNum,
+                passportNumber: passportNumber,
                 applicantName: applicantName.trim(),
                 submissionDate: new Date().toLocaleDateString('en-GB'),
                 submissionTimestamp: Date.now(),
-                status: 'Submitted',
+                status: 'Verified',
                 email: userEmail,
                 fee: fee,
                 fullData: allFormData
@@ -1918,7 +2023,7 @@ user-select: none;
             applications.push(app);
             localStorage.setItem('submitted_applications', JSON.stringify(applications));
             
-            sendEmailNotification(userEmail, refNum, currentAppType, applicantName.trim(), allFormData);
+            sendEmailNotification(userEmail, refNum, passportNumber, currentAppType, applicantName.trim(), allFormData);
             
             localStorage.removeItem('automation_data');
             
@@ -2040,7 +2145,7 @@ user-select: none;
             return { amount: Math.round(amount), note };
         }
 
-        function sendEmailNotification(email, refNum, type, name, formData) {
+        function sendEmailNotification(email, refNum, passportNumber, type, name, formData) {
             const typeLabels = {
                 'fresh': 'Fresh Passport',
                 'reissue': 'Re-issue Passport',
@@ -2052,15 +2157,26 @@ user-select: none;
             const mobile = formData.mobile || 'Not provided';
             const fee = calculateApplicationFee(formData);
             
+            // Get country based on application type
+            let country = '';
+            if (type === 'fresh' || type === 'reissue') {
+                country = formData.country || 'Not provided';
+            } else if (type === 'pcc') {
+                country = formData.pccCountry || 'Not provided';
+            } else {
+                country = 'Not applicable';
+            }
+            
             const templateParams = {
                 to_email: email,
                 to_name: name,
                 application_type: typeLabels[type],
                 reference_number: refNum,
+                passport_number: passportNumber,
+                country: country,
                 application_fee: `₹${fee.amount}`,
                 mobile_number: mobile,
                 submission_date: new Date().toLocaleDateString('en-GB'),
-                processing_days: '30 days',
                 tracking_link: websiteLink,
                 applicant_name: name
             };
@@ -2121,6 +2237,11 @@ user-select: none;
                         </div>
                         
                         <div class="app-detail-row">
+                            <div class="app-detail-label">Passport Number:</div>
+                            <div style="color: #0066cc; font-weight: bold;">${app.passportNumber || 'N/A'}</div>
+                        </div>
+                        
+                        <div class="app-detail-row">
                             <div class="app-detail-label">Applicant Name:</div>
                             <div>${app.applicantName}</div>
                         </div>
@@ -2162,6 +2283,17 @@ user-select: none;
                             <div class="app-detail-row">
                                 <div class="app-detail-label">Mobile:</div>
                                 <div>${mobile}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Show country for all application types
+                    const country = getValue(data.country || data.pccCountry);
+                    if (country) {
+                        detailRows += `
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Country:</div>
+                                <div style="color: #0066cc; font-weight: bold;">${country}</div>
                             </div>
                         `;
                     }
@@ -2271,7 +2403,6 @@ user-select: none;
                 localStorage.setItem('submitted_applications', JSON.stringify(applications));
                 
                 loadApplications();
-                loadTracking();
                 
                 alert('✅ Application removed!');
             }
@@ -2309,6 +2440,7 @@ BASIC DETAILS
 └────────────────────────────────────────────┘
 
 Reference Number: ${app.referenceNumber}
+Passport Number: ${app.passportNumber || 'N/A'}
 Applicant Name: ${app.applicantName}
 Date of Birth: ${data.dob || 'N/A'}
 Gender: ${data.gender || 'N/A'}
@@ -2329,7 +2461,6 @@ APPLICATION DETAILS
 Submission Date: ${app.submissionDate}
 Application Fee: ₹${app.fee ? app.fee.amount : 'N/A'}
 Status: ${app.status}
-Processing Time: 30 days
 
 ┌────────────────────────────────────────────┐
 
@@ -2350,89 +2481,6 @@ Generated on: ${new Date().toLocaleString('en-GB')}
             window.URL.revokeObjectURL(url);
             
             alert('✅ Application downloaded!');
-        }
-
-        function loadTracking() {
-            const applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
-            
-            const typeLabels = {
-                'fresh': 'Fresh Passport',
-                'reissue': 'Re-issue Passport',
-                'pcc': 'Police Clearance Certificate',
-                'identity': 'Identity Certificate'
-            };
-
-            const trackContent = document.getElementById('trackContent');
-            if (applications.length === 0) {
-                trackContent.innerHTML = '<p style="color: #666;">No applications to track</p>';
-            } else {
-                trackContent.innerHTML = '';
-                applications.forEach((app, index) => {
-                    const submissionTime = app.submissionTimestamp || Date.now();
-                    const now = Date.now();
-                    const daysPassed = Math.floor((now - submissionTime) / (1000 * 60 * 60 * 24));
-                    const daysRemaining = Math.max(0, 30 - daysPassed);
-                    
-                    let statusMessage = '';
-                    let statusColor = '';
-                    
-                    if (daysRemaining > 0) {
-                        statusMessage = `Application being processed. Expected in ${daysRemaining} days.`;
-                        statusColor = '#1976d2';
-                        app.status = 'Under Processing';
-                    } else {
-                        statusMessage = 'Application verified and processed!';
-                        statusColor = '#4caf50';
-                        app.status = 'Verified';
-                    }
-                    
-                    trackContent.innerHTML += `
-                        <div class="app-detail-card">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                                <h3 style="color: #003d82; margin: 0;">
-                                    ${typeLabels[app.type]} - ${app.applicantName}
-                                </h3>
-                                <button onclick="removeApplication(${index})" style="background: #f44336; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">
-                                    🗑️ Remove
-                                </button>
-                            </div>
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Reference Number:</div>
-                                <div style="color: #0066cc; font-weight: bold;">${app.referenceNumber}</div>
-                            </div>
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Submitted On:</div>
-                                <div>${app.submissionDate}</div>
-                            </div>
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Days Passed:</div>
-                                <div><strong>${daysPassed}</strong> out of 30 days</div>
-                            </div>
-                            
-                            <div class="tracking-box">
-                                <h4 style="color: ${statusColor}; margin-bottom: 10px;">
-                                    ${daysRemaining > 0 ? 'Days Remaining' : 'Complete'}
-                                </h4>
-                                <div class="days-remaining" style="color: ${statusColor};">${daysRemaining}</div>
-                                <p style="font-size: 14px; color: #666; margin-top: 10px;">
-                                    ${statusMessage}
-                                </p>
-                                <div style="margin-top: 15px; background: ${daysRemaining > 0 ? '#e3f2fd' : '#e8f5e9'}; padding: 10px; border-radius: 4px;">
-                                    <strong>Status:</strong> 
-                                    <span style="color: ${daysRemaining > 0 ? '#1976d2' : '#4caf50'}; font-weight: bold;">
-                                        ${daysRemaining > 0 ? 'Under Processing' : 'Verified ✓'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                localStorage.setItem('submitted_applications', JSON.stringify(applications));
-            }
         }
 
         function updateFeeFields() {
