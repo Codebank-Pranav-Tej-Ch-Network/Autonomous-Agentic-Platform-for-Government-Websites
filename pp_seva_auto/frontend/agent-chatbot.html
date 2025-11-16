@@ -21,6 +21,66 @@
             padding: 20px;
         }
 
+        .login-container {
+            width: 100%;
+            max-width: 450px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-header h1 {
+            font-size: 28px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .login-info {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        .btn-login {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
         .chat-container {
             width: 100%;
             max-width: 900px;
@@ -37,6 +97,12 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 25px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
             display: flex;
             align-items: center;
             gap: 15px;
@@ -61,6 +127,16 @@
         .header-info p {
             font-size: 13px;
             opacity: 0.9;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
         }
 
         .chat-messages {
@@ -150,10 +226,15 @@
             text-align: left;
         }
 
-        .quick-action-btn:hover {
+        .quick-action-btn:hover:not(:disabled) {
             background: #667eea;
             color: white;
             transform: translateY(-2px);
+        }
+
+        .quick-action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .quick-action-btn .icon {
@@ -168,39 +249,33 @@
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
         }
 
-        .form-group {
+        .chat-form h4 {
             margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
+            color: #667eea;
         }
 
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 8px;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: normal;
         }
 
         .chat-form button {
@@ -216,153 +291,146 @@
             margin-top: 10px;
         }
 
-        .typing-indicator {
-            display: flex;
-            gap: 5px;
-            padding: 15px 20px;
-        }
-
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            background: #999;
-            border-radius: 50%;
-            animation: typing 1.4s infinite;
-        }
-
-        .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes typing {
-            0%, 60%, 100% {
-                transform: translateY(0);
-            }
-            30% {
-                transform: translateY(-10px);
-            }
-        }
-
-        .progress-indicator {
-            background: #f0f8ff;
-            border-left: 4px solid #2196f3;
-            padding: 15px;
-            border-radius: 8px;
+        .fee-display {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            padding: 20px;
+            border-radius: 12px;
             margin-top: 15px;
+            text-align: center;
         }
 
-        .progress-step {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .progress-step.completed {
-            color: #4caf50;
-        }
-
-        .progress-step.active {
+        .fee-amount {
+            font-size: 36px;
+            color: #2e7d32;
             font-weight: bold;
-            color: #2196f3;
+            margin: 10px 0;
+        }
+
+        .captcha-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+            text-align: center;
         }
 
         .captcha-display {
             background: white;
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            margin-top: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .captcha-image-preview {
-            background: #f0f0f0;
             border: 2px solid #ccc;
-            padding: 20px;
-            border-radius: 8px;
+            padding: 15px 30px;
+            display: inline-block;
+            margin: 15px 0;
             font-family: 'Courier New', monospace;
             font-size: 32px;
             letter-spacing: 12px;
             font-weight: bold;
-            margin: 15px 0;
-            position: relative;
-            display: inline-block;
-        }
-
-        .captcha-image-preview::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: #333;
-            transform: rotate(-2deg);
-        }
-
-        .captcha-input-group input {
-            width: 100%;
-            padding: 12px;
-            text-align: center;
-            font-size: 20px;
-            letter-spacing: 8px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-weight: bold;
-            margin-top: 15px;
-        }
-
-        .captcha-input-group button {
-            width: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
         }
 
         @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            .message-content {
-                max-width: 85%;
-            }
+            .form-row { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="chat-container">
+    <div id="loginSection" class="login-container">
+        <div class="login-header">
+            <h1>🤖 Passport Assistant</h1>
+            <p style="color: #666; margin-top: 10px;">Your automated passport application helper</p>
+        </div>
+
+        <div class="login-info">
+            <strong>ℹ️ Important:</strong><br>
+            These login credentials are used to automatically login to the Mock Passport Website. Please use the same credentials you used (or will use) on the mock website.
+        </div>
+
+        <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="loginName" required placeholder="Enter your full name">
+            </div>
+
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="loginEmail" required placeholder="Enter your email">
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" required placeholder="Enter your password">
+            </div>
+
+            <button type="submit" class="btn-login">🔐 Login to Assistant</button>
+        </form>
+    </div>
+
+    <div id="chatSection" class="chat-container" style="display: none;">
         <div class="chat-header">
-            <div class="bot-avatar">🤖</div>
-            <div class="header-info">
-                <h1>Passport Assistant</h1>
-                <p>Your AI automation companion</p>
+            <div class="header-left">
+                <div class="bot-avatar">🤖</div>
+                <div class="header-info">
+                    <h1>Passport Assistant</h1>
+                    <p>Background automation with CAPTCHA</p>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span id="userName" style="font-weight: 600;"></span>
+                <button class="btn-logout" onclick="handleLogout()">Logout</button>
             </div>
         </div>
 
         <div class="chat-messages" id="chatMessages"></div>
     </div>
 
+    <iframe id="mockWebsiteFrame" style="display: none; width: 1px; height: 1px; border: none; position: absolute;"></iframe>
+
     <script>
         const USER_DATA_KEY = 'passport_user_data';
+        const LOGIN_KEY = 'passport_login_credentials';
+        const APPLIED_TYPES_KEY = 'applied_types';
         let userData = null;
+        let loginCredentials = null;
         let currentTask = null;
-        let websiteWindow = null;
+        let appliedTypes = [];
+        let currentUserName = '';
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const name = document.getElementById('loginName').value;
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            loginCredentials = { name, email, password };
+            currentUserName = name;
+            localStorage.setItem(LOGIN_KEY, JSON.stringify(loginCredentials));
+            
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('chatSection').style.display = 'flex';
+            document.getElementById('userName').textContent = name;
+            
+            loadUserData();
+            initChat();
+        }
+
+        function handleLogout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem(LOGIN_KEY);
+                document.getElementById('chatSection').style.display = 'none';
+                document.getElementById('loginSection').style.display = 'block';
+                document.getElementById('chatMessages').innerHTML = '';
+            }
+        }
 
         function loadUserData() {
             const saved = localStorage.getItem(USER_DATA_KEY);
             if (saved) {
                 userData = JSON.parse(saved);
+            }
+            
+            const types = localStorage.getItem(APPLIED_TYPES_KEY);
+            if (types) {
+                appliedTypes = JSON.parse(types);
             }
         }
 
@@ -396,6 +464,7 @@
                     btn.className = 'quick-action-btn';
                     btn.innerHTML = `<span class="icon">${action.icon}</span>${action.text}`;
                     btn.onclick = action.onClick;
+                    btn.disabled = action.disabled || false;
                     actionsDiv.appendChild(btn);
                 });
                 content.appendChild(actionsDiv);
@@ -408,47 +477,41 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        function showTyping() {
-            const messagesDiv = document.getElementById('chatMessages');
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'message bot';
-            typingDiv.id = 'typingIndicator';
-            
-            const avatar = document.createElement('div');
-            avatar.className = 'message-avatar';
-            avatar.textContent = '🤖';
-            
-            const content = document.createElement('div');
-            content.className = 'message-content';
-            content.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
-            
-            typingDiv.appendChild(avatar);
-            typingDiv.appendChild(content);
-            messagesDiv.appendChild(typingDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        }
-
-        function removeTyping() {
-            const typing = document.getElementById('typingIndicator');
-            if (typing) typing.remove();
-        }
-
         async function botResponse(text, options = {}) {
-            showTyping();
-            await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 400));
-            removeTyping();
+            await new Promise(resolve => setTimeout(resolve, 600));
             addMessage(text, 'bot', options);
         }
 
         function createComprehensiveForm() {
             const form = document.createElement('div');
             form.className = 'chat-form';
-            form.innerHTML = `
-                <h4 style="margin-bottom: 15px; color: #667eea;">📋 Complete Application Details</h4>
-                
+            
+            let formHTML = `<h4>📋 Application Details</h4>`;
+
+            if (currentTask === 'fresh' || currentTask === 'reissue') {
+                formHTML += `
+                    <div class="form-group">
+                        <label>Service Type *</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="serviceType" value="normal"> Normal</label>
+                            <label><input type="radio" name="serviceType" value="tatkaal"> Tatkaal</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Booklet Type *</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="bookletType" value="36"> 36 Pages</label>
+                            <label><input type="radio" name="bookletType" value="60"> 60 Pages</label>
+                        </div>
+                    </div>
+                `;
+            }
+
+            formHTML += `
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Given Name (First + Middle) *</label>
+                        <label>Given Name *</label>
                         <input type="text" id="givenName" required>
                     </div>
                     <div class="form-group">
@@ -484,7 +547,6 @@
                             <option value="">Select</option>
                             <option value="Single">Single</option>
                             <option value="Married">Married</option>
-                            <option value="Divorced">Divorced</option>
                         </select>
                     </div>
                 </div>
@@ -496,32 +558,43 @@
                             <option value="">Select</option>
                             <option value="Birth">Birth</option>
                             <option value="Descent">Descent</option>
-                            <option value="Registration/Naturalization">Registration/Naturalization</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Employment Type *</label>
+                        <label>Employment *</label>
                         <select id="employment" required>
                             <option value="">Select</option>
                             <option value="Government">Government</option>
                             <option value="Private">Private</option>
                             <option value="Student">Student</option>
-                            <option value="Self Employed">Self Employed</option>
-                            <option value="Not Employed">Not Employed</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Educational Qualification *</label>
+                    <label>Education *</label>
                     <select id="education" required>
                         <option value="">Select</option>
                         <option value="10th Pass And Above">10th Pass And Above</option>
                         <option value="Graduate And Above">Graduate And Above</option>
                     </select>
                 </div>
+            `;
 
-                <h4 style="margin: 20px 0 15px; color: #667eea;">👨‍👩‍👧 Family Details</h4>
+            if (currentTask === 'fresh' || currentTask === 'reissue') {
+                formHTML += `
+                    <div class="form-group">
+                        <label>Non-ECR *</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="nonECR" value="yes"> Yes</label>
+                            <label><input type="radio" name="nonECR" value="no"> No</label>
+                        </div>
+                    </div>
+                `;
+            }
+
+            formHTML += `
+                <h4 style="margin-top: 20px;">👨‍👩‍👧 Family</h4>
 
                 <div class="form-row">
                     <div class="form-group">
@@ -545,7 +618,7 @@
                     </div>
                 </div>
 
-                <h4 style="margin: 20px 0 15px; color: #667eea;">🏠 Address Details</h4>
+                <h4 style="margin-top: 20px;">🏠 Address</h4>
 
                 <div class="form-group">
                     <label>House No. and Street *</label>
@@ -559,7 +632,7 @@
                     </div>
                     <div class="form-group">
                         <label>PIN Code *</label>
-                        <input type="text" id="pincode" required pattern="[0-9]{6}">
+                        <input type="text" id="pincode" required>
                     </div>
                 </div>
 
@@ -571,13 +644,11 @@
                             <option value="AP">Andhra Pradesh</option>
                             <option value="TN">Tamil Nadu</option>
                             <option value="KA">Karnataka</option>
-                            <option value="MH">Maharashtra</option>
-                            <option value="DL">Delhi</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Mobile *</label>
-                        <input type="tel" id="mobile" required pattern="[0-9]{10}">
+                        <input type="tel" id="mobile" required>
                     </div>
                 </div>
 
@@ -586,243 +657,660 @@
                     <input type="email" id="email" required>
                 </div>
 
-                <h4 style="margin: 20px 0 15px; color: #667eea;">🚨 Emergency Contact</h4>
+                <h4 style="margin-top: 20px;">🚨 Emergency Contact</h4>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Emergency Contact Name *</label>
+                        <label>Name *</label>
                         <input type="text" id="emergencyName" required>
                     </div>
                     <div class="form-group">
-                        <label>Emergency Mobile *</label>
-                        <input type="tel" id="emergencyMobile" required pattern="[0-9]{10}">
+                        <label>Mobile *</label>
+                        <input type="tel" id="emergencyMobile" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Emergency Address *</label>
+                    <label>Address *</label>
                     <input type="text" id="emergencyAddress" required>
                 </div>
-
-                <button type="button" onclick="submitUserData()">💾 Save & Start Automation</button>
             `;
+
+            if (currentTask === 'pcc') {
+                formHTML += `
+                    <h4 style="margin-top: 20px;">📘 Passport Details (for PCC)</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Passport Number *</label>
+                            <input type="text" id="passportNumber" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Date of Issue *</label>
+                            <input type="date" id="passportDate" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Country *</label>
+                        <input type="text" id="pccCountry" required>
+                    </div>
+                `;
+            }
+
+            if (currentTask === 'identity') {
+                formHTML += `
+                    <h4 style="margin-top: 20px;">Previous IC</h4>
+                    <div class="form-group">
+                        <label>Have you held an Identity Certificate before?</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="previousIC" value="no"> No</label>
+                            <label><input type="radio" name="previousIC" value="yes"> Yes</label>
+                        </div>
+                    </div>
+                `;
+            }
+
+            formHTML += `<button type="button" onclick="submitAndAutomate()">💾 Save & Start Automation</button>`;
+            
+            form.innerHTML = formHTML;
             return form;
         }
 
-        async function submitUserData() {
-            const data = {
-                givenName: document.getElementById('givenName').value,
-                surname: document.getElementById('surname').value,
-                dob: document.getElementById('dob').value,
-                gender: document.getElementById('gender').value,
-                placeOfBirth: document.getElementById('placeOfBirth').value,
-                maritalStatus: document.getElementById('maritalStatus').value,
-                citizenship: document.getElementById('citizenship').value,
-                employment: document.getElementById('employment').value,
-                education: document.getElementById('education').value,
-                fatherGivenName: document.getElementById('fatherGivenName').value,
-                fatherSurname: document.getElementById('fatherSurname').value,
-                motherGivenName: document.getElementById('motherGivenName').value,
-                motherSurname: document.getElementById('motherSurname').value,
-                houseNo: document.getElementById('houseNo').value,
-                city: document.getElementById('city').value,
-                pincode: document.getElementById('pincode').value,
-                state: document.getElementById('state').value,
-                mobile: document.getElementById('mobile').value,
-                email: document.getElementById('email').value,
-                emergencyName: document.getElementById('emergencyName').value,
-                emergencyMobile: document.getElementById('emergencyMobile').value,
-                emergencyAddress: document.getElementById('emergencyAddress').value,
-                savedAt: new Date().toISOString()
-            };
+        function prefillForm() {
+            if (!userData) return;
             
-            // Validate
+            console.log('📝 Prefilling form with saved data:', userData);
+            
+            setTimeout(() => {
+                const fields = ['givenName', 'surname', 'dob', 'gender', 'placeOfBirth', 'maritalStatus',
+                              'citizenship', 'employment', 'education', 'fatherGivenName', 'fatherSurname',
+                              'motherGivenName', 'motherSurname', 'houseNo', 'city', 'pincode', 'state',
+                              'mobile', 'email', 'emergencyName', 'emergencyMobile', 'emergencyAddress',
+                              'passportNumber', 'passportDate', 'pccCountry'];
+                
+                fields.forEach(field => {
+                    const element = document.getElementById(field);
+                    if (element && userData[field]) {
+                        element.value = userData[field];
+                        console.log(`✓ Filled ${field}:`, userData[field]);
+                        
+                        // Highlight the field briefly to show it was filled
+                        element.style.background = '#e8f5e9';
+                        setTimeout(() => {
+                            element.style.background = '';
+                        }, 1000);
+                    }
+                });
+
+                // Handle radio buttons
+                ['serviceType', 'bookletType', 'nonECR', 'previousIC'].forEach(name => {
+                    if (userData[name]) {
+                        const radio = document.querySelector(`input[name="${name}"][value="${userData[name]}"]`);
+                        if (radio) {
+                            radio.checked = true;
+                            console.log(`✓ Selected ${name}:`, userData[name]);
+                        }
+                    }
+                });
+                
+                console.log('✅ Form prefilled successfully!');
+            }, 300);
+        }
+
+        async function submitAndAutomate() {
+            const data = {
+                userName: currentUserName,
+                givenName: document.getElementById('givenName')?.value || '',
+                surname: document.getElementById('surname')?.value || '',
+                dob: document.getElementById('dob')?.value || '',
+                gender: document.getElementById('gender')?.value || '',
+                placeOfBirth: document.getElementById('placeOfBirth')?.value || '',
+                maritalStatus: document.getElementById('maritalStatus')?.value || '',
+                citizenship: document.getElementById('citizenship')?.value || '',
+                employment: document.getElementById('employment')?.value || '',
+                education: document.getElementById('education')?.value || '',
+                fatherGivenName: document.getElementById('fatherGivenName')?.value || '',
+                fatherSurname: document.getElementById('fatherSurname')?.value || '',
+                motherGivenName: document.getElementById('motherGivenName')?.value || '',
+                motherSurname: document.getElementById('motherSurname')?.value || '',
+                houseNo: document.getElementById('houseNo')?.value || '',
+                city: document.getElementById('city')?.value || '',
+                pincode: document.getElementById('pincode')?.value || '',
+                state: document.getElementById('state')?.value || '',
+                mobile: document.getElementById('mobile')?.value || '',
+                email: document.getElementById('email')?.value || '',
+                emergencyName: document.getElementById('emergencyName')?.value || '',
+                emergencyMobile: document.getElementById('emergencyMobile')?.value || '',
+                emergencyAddress: document.getElementById('emergencyAddress')?.value || '',
+                applicationType: currentTask
+            };
+
+            if (currentTask === 'fresh' || currentTask === 'reissue') {
+                data.serviceType = document.querySelector('input[name="serviceType"]:checked')?.value || '';
+                data.bookletType = document.querySelector('input[name="bookletType"]:checked')?.value || '';
+                data.nonECR = document.querySelector('input[name="nonECR"]:checked')?.value || '';
+            }
+
+            if (currentTask === 'pcc') {
+                data.passportNumber = document.getElementById('passportNumber')?.value || '';
+                data.passportDate = document.getElementById('passportDate')?.value || '';
+                data.pccCountry = document.getElementById('pccCountry')?.value || '';
+            }
+
+            if (currentTask === 'identity') {
+                data.previousIC = document.querySelector('input[name="previousIC"]:checked')?.value || '';
+            }
+            
             if (!data.givenName || !data.email || !data.mobile) {
                 alert('Please fill all required fields');
                 return;
             }
             
             saveUserData(data);
-            addMessage('All details saved!', 'user');
+            addMessage('All details saved! Start automation', 'user');
             
-            await botResponse('✅ Perfect! I\'ve saved all your information. You won\'t need to enter this again.');
-            await startAutomation();
+            await botResponse('✅ Data saved! Starting background automation...');
+            await startBackgroundAutomation(data);
         }
 
-        async function startAutomation() {
-            await botResponse('🚀 Starting automation for your passport application...');
+        async function startBackgroundAutomation(data) {
+            await botResponse('🚀 Automating in background...');
             
-            const steps = [
-                { text: '🌐 Opening Passport Seva portal', status: 'completed' },
-                { text: '🔐 Logging in', status: 'completed' },
-                { text: '📋 Navigating to application form', status: 'completed' },
-                { text: '✍️ Auto-filling all your details', status: 'active' },
-                { text: '⏳ Waiting for CAPTCHA', status: 'pending' }
-            ];
-            
-            const progress = createProgressIndicator(steps);
-            addMessage('Automation in progress:', 'bot', { form: progress });
-
-            // Open website
-            await new Promise(r => setTimeout(r, 2000));
-            await botResponse('📌 <strong>Important:</strong> I\'m opening the Passport Seva website. Please keep that window open!');
-            
-            // Simulate steps
-            for (let i = 0; i < steps.length - 1; i++) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                steps[i].status = 'completed';
-                if (i < steps.length - 1) {
-                    steps[i + 1].status = 'active';
-                }
-                updateProgressIndicator(steps);
+            const fee = calculateFeeForUser(data);
+            if (fee) {
+                const feeDiv = document.createElement('div');
+                feeDiv.className = 'fee-display';
+                feeDiv.innerHTML = `
+                    <p><strong>Application Fee:</strong></p>
+                    <div class="fee-amount">₹ ${fee.amount}</div>
+                    <p style="font-size: 13px;">${fee.note}</p>
+                `;
+                await botResponse('💰 Fee Details:', { form: feeDiv });
             }
 
-            await new Promise(r => setTimeout(r, 2000));
-            steps[steps.length - 1].status = 'completed';
-            updateProgressIndicator(steps);
+            await botResponse('⏳ Automation will:<br>• Login automatically<br>• Fill all stages<br>• Stop at CAPTCHA<br><br>Please wait...');
+
+            const automationData = {
+                ...data,
+                loginName: loginCredentials.name,
+                loginEmail: loginCredentials.email,
+                loginPassword: loginCredentials.password,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('automation_data', JSON.stringify(automationData));
+
+            window.removeEventListener('message', handleAutomationMessage);
+            window.addEventListener('message', handleAutomationMessage);
+
+            const iframe = document.getElementById('mockWebsiteFrame');
             
-            await botResponse('✅ All fields have been automatically filled!');
-            await showCaptcha();
+            try {
+                const currentURL = new URL(window.location.href);
+                currentURL.pathname = currentURL.pathname.replace('agent-chatbot.html', 'mock-passport-website.html');
+                currentURL.searchParams.set('t', Date.now().toString());
+                const mockWebURL = currentURL.toString();
+                
+                iframe.onload = function() {
+                    console.log('✅ Mock website iframe loaded');
+                };
+                
+                iframe.src = mockWebURL;
+            } catch (error) {
+                console.error('Error loading iframe:', error);
+                const fallbackURL = window.location.href.replace('agent-chatbot.html', 'mock-passport-website.html') + '?t=' + Date.now();
+                iframe.src = fallbackURL;
+            }
+            
+            await botResponse('⏱️ Automation started... filling forms automatically...');
         }
 
-        function createProgressIndicator(steps) {
-            const progress = document.createElement('div');
-            progress.className = 'progress-indicator';
-            progress.id = 'progressIndicator';
-            steps.forEach(step => {
-                const stepDiv = document.createElement('div');
-                stepDiv.className = `progress-step ${step.status}`;
-                stepDiv.innerHTML = `${step.status === 'completed' ? '✅' : step.status === 'active' ? '🔄' : '⏳'} ${step.text}`;
-                progress.appendChild(stepDiv);
-            });
-            return progress;
-        }
-
-        function updateProgressIndicator(steps) {
-            const progress = document.getElementById('progressIndicator');
-            if (progress) {
-                progress.innerHTML = '';
-                steps.forEach(step => {
-                    const stepDiv = document.createElement('div');
-                    stepDiv.className = `progress-step ${step.status}`;
-                    stepDiv.innerHTML = `${step.status === 'completed' ? '✅' : step.status === 'active' ? '🔄' : '⏳'} ${step.text}`;
-                    progress.appendChild(stepDiv);
-                });
+        function handleAutomationMessage(event) {
+            console.log('📨 Message received:', event.data);
+            if (event.data && event.data.type === 'AUTOMATION_PAUSED') {
+                console.log('✅ CAPTCHA received, showing to user');
+                showCaptchaScreen(event.data.captcha);
             }
         }
 
-        async function showCaptcha() {
-            const captchaCode = generateCaptcha();
+        async function showCaptchaScreen(captchaCode) {
+            await botResponse('⏸️ Automation paused at CAPTCHA stage...');
             
             const captchaDiv = document.createElement('div');
-            captchaDiv.className = 'captcha-display';
+            captchaDiv.className = 'captcha-box';
+            captchaDiv.id = 'captcha-box-' + Date.now(); // Unique ID for this CAPTCHA
             captchaDiv.innerHTML = `
-                <p><strong>🔐 Please solve this CAPTCHA from the website:</strong></p>
-                <div class="captcha-image-preview">${captchaCode}</div>
-                <div class="captcha-input-group">
-                    <input type="text" id="captchaSolution" placeholder="Enter CAPTCHA" maxlength="6">
-                    <button onclick="submitCaptcha('${captchaCode}')">Submit CAPTCHA</button>
+                <h4 style="color: #e65100; margin-bottom: 15px;">⏸️ Automation Paused</h4>
+                <p style="margin-bottom: 15px;">Please enter the CAPTCHA to complete your application:</p>
+                <div class="captcha-display">${captchaCode}</div>
+                <input type="text" class="captcha-input-field" placeholder="Enter CAPTCHA" maxlength="6" style="width: 200px; padding: 10px; font-size: 18px; text-align: center; border: 2px solid #ccc; border-radius: 4px; margin: 10px;">
+                <br>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
+                    <button class="captcha-confirm-btn" style="padding: 10px 30px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">✓ Confirm & Submit</button>
+                    <button class="captcha-exit-btn" style="padding: 10px 30px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Exit</button>
                 </div>
             `;
             
-            addMessage('I need your help with one thing:', 'bot', { form: captchaDiv });
-        }
-
-        function generateCaptcha() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let captcha = '';
-            for (let i = 0; i < 6; i++) {
-                captcha += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return captcha;
-        }
-
-        async function submitCaptcha(correctCode) {
-            const userInput = document.getElementById('captchaSolution').value.toUpperCase();
+            await botResponse('🔐 CAPTCHA Required:', { form: captchaDiv });
             
-            if (userInput !== correctCode) {
-                await botResponse('❌ CAPTCHA incorrect. Please try again.');
+            // Add event listeners after the element is in the DOM
+            setTimeout(() => {
+                const confirmBtn = captchaDiv.querySelector('.captcha-confirm-btn');
+                const exitBtn = captchaDiv.querySelector('.captcha-exit-btn');
+                const inputField = captchaDiv.querySelector('.captcha-input-field');
+                
+                if (confirmBtn) {
+                    confirmBtn.onclick = () => submitCaptcha(captchaCode, captchaDiv);
+                }
+                
+                if (exitBtn) {
+                    exitBtn.onclick = () => exitAutomation(captchaDiv);
+                }
+                
+                if (inputField) {
+                    inputField.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            submitCaptcha(captchaCode, captchaDiv);
+                        }
+                    });
+                }
+            }, 100);
+        }
+
+        window.exitAutomation = async function(captchaBox) {
+            if (confirm('Are you sure you want to exit? All progress will be lost.')) {
+                localStorage.removeItem('automation_data');
+                const iframe = document.getElementById('mockWebsiteFrame');
+                iframe.src = 'about:blank';
+                
+                // Remove the CAPTCHA box
+                if (captchaBox && captchaBox.parentElement) {
+                    captchaBox.parentElement.parentElement.remove();
+                }
+                
+                addMessage('Exit automation', 'user');
+                await botResponse('❌ Automation cancelled. You can start a new application anytime.');
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                initChat();
+            }
+        };
+
+        window.submitCaptcha = async function(correctCaptcha, captchaBox) {
+            const inputElement = captchaBox.querySelector('.captcha-input-field');
+            if (!inputElement) {
+                console.error('CAPTCHA input not found');
                 return;
             }
             
-            addMessage(userInput, 'user');
-            await botResponse('✅ CAPTCHA verified! Submitting your application...');
+            const userInput = inputElement.value.toUpperCase().trim();
             
-            // Send to website
-            if (websiteWindow && !websiteWindow.closed) {
-                websiteWindow.postMessage({
-                    type: 'AUTO_FILL',
-                    data: userData
-                }, '*');
+            console.log('User input:', userInput);
+            console.log('Expected:', correctCaptcha);
+            
+            if (!userInput) {
+                alert('⚠️ Please enter the CAPTCHA code!');
+                return;
             }
             
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            const refNumber = 'PSP' + Date.now().toString().slice(-10);
-            await botResponse(`🎉 <strong>Success! Your application has been submitted.</strong><br><br>
-                <strong>Reference Number:</strong> ${refNumber}<br><br>
-                You'll receive a confirmation email shortly at ${userData.email}`);
-            
-            await botResponse('Would you like to do anything else?', {
-                quickActions: [
-                    { icon: '🔄', text: 'New Application', onClick: () => selectTask('fresh') },
-                    { icon: '🏠', text: 'Back to Home', onClick: () => location.reload() },
-                    { icon: '🗑️', text: 'Clear My Data', onClick: clearData }
-                ]
+            if (userInput !== correctCaptcha) {
+                alert('❌ Invalid CAPTCHA! Please try again.');
+                inputElement.value = '';
+                inputElement.focus();
+                return;
+            }
+
+            // Disable and hide the CAPTCHA box immediately
+            inputElement.disabled = true;
+            inputElement.style.background = '#e8f5e9';
+            const buttons = captchaBox.querySelectorAll('button');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
             });
+            
+            // Hide the entire CAPTCHA box after 1 second
+            setTimeout(() => {
+                if (captchaBox && captchaBox.parentElement) {
+                    captchaBox.parentElement.parentElement.remove();
+                }
+            }, 1000);
+
+            addMessage('CAPTCHA entered: ' + userInput, 'user');
+            
+            await botResponse('✅ CAPTCHA verified! Submitting application...');
+            
+            const iframe = document.getElementById('mockWebsiteFrame');
+            if (iframe && iframe.contentWindow) {
+                try {
+                    iframe.contentWindow.postMessage({
+                        type: 'SUBMIT_APPLICATION',
+                        captcha: userInput
+                    }, '*');
+                } catch (error) {
+                    console.error('Error sending message to iframe:', error);
+                }
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Get application details from localStorage
+            const applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
+            const latestApp = applications[applications.length - 1];
+            
+            if (!appliedTypes.includes(currentTask)) {
+                appliedTypes.push(currentTask);
+                localStorage.setItem(APPLIED_TYPES_KEY, JSON.stringify(appliedTypes));
+            }
+            
+            await botResponse('🎉 Application submitted successfully!');
+            
+            if (latestApp) {
+                await botResponse(`📧 <strong>Please check your Gmail inbox</strong><br><br>An email has been sent to: <strong>${latestApp.email}</strong><br><br>The email contains:<br>• Reference Number: <strong>${latestApp.referenceNumber}</strong><br>• Application Fee: <strong>₹${latestApp.fee ? latestApp.fee.amount : 'N/A'}</strong><br>• Processing Timeline: <strong>30 days</strong>`);
+            }
+            
+            try {
+                const currentURL = new URL(window.location.href);
+                currentURL.pathname = currentURL.pathname.replace('agent-chatbot.html', 'mock-passport-website.html');
+                const mockWebURL = currentURL.toString();
+                
+                await botResponse(`📱 <strong>Track Your Application:</strong><br><br>Visit the Mock Passport Website to track your application status and view complete details:<br><br><a href="${mockWebURL}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 10px;">🔗 Open Mock Passport Website</a>`);
+            } catch (error) {
+                const fallbackURL = window.location.href.replace('agent-chatbot.html', 'mock-passport-website.html');
+                await botResponse(`📱 <strong>Track Your Application:</strong><br><br>Visit the Mock Passport Website to track your application status and view complete details:<br><br><a href="${fallbackURL}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 10px;">🔗 Open Mock Passport Website</a>`);
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            initChat();
+        };
+
+        // Download passport PDF function
+        window.downloadPassportPDF = function(refNumber) {
+            const applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
+            const app = applications.find(a => a.referenceNumber === refNumber);
+            
+            if (!app) {
+                alert('Application not found!');
+                return;
+            }
+            
+            const typeLabels = {
+                'fresh': 'Fresh Passport',
+                'reissue': 'Re-issue Passport',
+                'pcc': 'Police Clearance Certificate',
+                'identity': 'Identity Certificate'
+            };
+            
+            const data = app.fullData || {};
+            
+            // Create PDF content as text
+            const pdfContent = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+              PASSPORT SEVA
+        Ministry of External Affairs
+        Government of India
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+APPLICATION TYPE: ${typeLabels[app.type]}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BASIC DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Reference Number: ${app.referenceNumber}
+Applicant Name: ${app.applicantName}
+Date of Birth: ${data.dob || data.dob2 || 'N/A'}
+Gender: ${data.gender || data.gender2 || 'N/A'}
+Mobile: ${data.mobile || data.mobile2 || 'N/A'}
+Email: ${app.email}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ADDRESS DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${data.houseNo || data.houseNo2 || ''}
+${data.city || data.city2 || ''}, ${data.state || data.state2 || ''} - ${data.pincode || data.pincode2 || ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APPLICATION DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Submission Date: ${app.submissionDate}
+Application Fee: ₹${app.fee ? app.fee.amount : 'N/A'}
+Status: ${app.status}
+Processing Time: 30 days
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This is a computer-generated document.
+No signature is required.
+
+Generated on: ${new Date().toLocaleString('en-GB')}
+            `;
+            
+            // Create and download text file
+            const blob = new Blob([pdfContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Passport_Application_${refNumber}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            alert('✅ Application downloaded successfully!');
+        };
+
+        function calculateFeeForUser(data) {
+            const dob = new Date(data.dob);
+            const age = Math.floor((new Date() - dob) / (365.25 * 24 * 60 * 60 * 1000));
+            
+            let amount = 0;
+            let note = '';
+            
+            if (currentTask === 'fresh' || currentTask === 'reissue') {
+                const booklet = data.bookletType || '36';
+                const serviceType = data.serviceType || 'normal';
+                
+                if (serviceType === 'normal') {
+                    amount = booklet === '36' ? 1500 : 2000;
+                } else {
+                    amount = booklet === '36' ? 3500 : 4000;
+                }
+                
+                if (age < 18 || age > 60) {
+                    amount = amount * 0.9;
+                    note = '10% discount for Minor/Senior';
+                }
+            } else if (currentTask === 'pcc') {
+                amount = 500;
+                note = 'Fixed fee for PCC';
+            } else if (currentTask === 'identity') {
+                amount = 300;
+                note = 'Fixed fee for Identity Certificate';
+            }
+            
+            return { amount: Math.round(amount), note };
         }
 
         async function selectTask(task) {
             currentTask = task;
-            addMessage(`I want to apply for ${task === 'fresh' ? 'fresh passport' : task === 'reissue' ? 'passport re-issue' : task === 'pcc' ? 'PCC' : 'identity certificate'}`, 'user');
+            const taskNames = {
+                'fresh': 'Fresh Passport',
+                'reissue': 'Re-issue Passport',
+                'pcc': 'Police Clearance Certificate',
+                'identity': 'Identity Certificate'
+            };
             
-            if (userData) {
-                await botResponse(`Great! I already have your details saved. Let me start the automation.`);
-                await startAutomation();
+            addMessage(`I want to apply for ${taskNames[task]}`, 'user');
+            
+            // Load saved data
+            loadUserData();
+            
+            // Check if we have any saved data (regardless of application type)
+            // This allows users to edit and reuse their information
+            if (userData && Object.keys(userData).length > 5) {
+                await botResponse(`I found your saved details. Would you like to use them or edit?`, {
+                    quickActions: [
+                        { icon: '✏️', text: 'Edit My Details', onClick: () => editData() },
+                        { icon: '✅', text: 'Use Saved Details', onClick: () => proceedWithData() },
+                        { icon: '🆕', text: 'Enter New Details', onClick: () => enterNewData() }
+                    ]
+                });
             } else {
-                await botResponse('I need some information from you. I\'ll save it securely so you won\'t need to enter it again.', {
+                await botResponse('Please provide your details:', {
                     form: createComprehensiveForm()
                 });
+                // Auto-fill any saved data
+                setTimeout(() => prefillForm(), 200);
             }
         }
 
-        async function clearData() {
-            if (confirm('Are you sure you want to clear your saved data?')) {
-                localStorage.removeItem(USER_DATA_KEY);
-                userData = null;
-                addMessage('Clear my saved data', 'user');
-                await botResponse('Your data has been cleared. I\'ll ask for your details on your next application.');
-                location.reload();
+        async function enterNewData() {
+            addMessage('Enter new details', 'user');
+            await botResponse('Please provide your details:', {
+                form: createComprehensiveForm()
+            });
+        }
+
+        async function editData() {
+            addMessage('Edit my details', 'user');
+            await botResponse('Update your information:', {
+                form: createComprehensiveForm()
+            });
+            prefillForm();
+        }
+
+        async function proceedWithData() {
+            addMessage('Proceed with saved data', 'user');
+            await startBackgroundAutomation(userData);
+        }
+
+        async function viewApplications() {
+            addMessage('Show my applications', 'user');
+            
+            const applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
+            
+            if (applications.length === 0) {
+                await botResponse('You have no submitted applications yet.');
+                return;
             }
+
+            const typeLabels = {
+                'fresh': 'Fresh Passport',
+                'reissue': 'Re-issue Passport',
+                'pcc': 'Police Clearance Certificate',
+                'identity': 'Identity Certificate'
+            };
+
+            let appList = '<div style="background: white; padding: 15px; border-radius: 8px;"><h4 style="margin-bottom: 15px; color: #667eea;">📋 Your Applications</h4>';
+            
+            applications.forEach(app => {
+                const submissionTime = app.submissionTimestamp || Date.now();
+                const daysElapsed = Math.floor((Date.now() - submissionTime) / (1000 * 60 * 60 * 24));
+                const daysRemaining = Math.max(0, 30 - daysElapsed);
+                
+                appList += `
+                    <div style="background: #f8f9fa; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #4caf50;">
+                        <div style="font-weight: bold; color: #003d82; margin-bottom: 5px;">${typeLabels[app.type]}</div>
+                        <div style="font-size: 13px; color: #666;">
+                            <strong>Reference:</strong> ${app.referenceNumber}<br>
+                            <strong>Name:</strong> ${app.applicantName}<br>
+                            <strong>Date:</strong> ${app.submissionDate}<br>
+                            <strong>Status:</strong> <span style="color: #4caf50; font-weight: bold;">${app.status}</span><br>
+                            <strong>Days Remaining:</strong> <span style="color: #1976d2; font-weight: bold;">${daysRemaining} days</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            appList += '</div>';
+            
+            await botResponse(appList);
+            
+            try {
+                const currentURL = new URL(window.location.href);
+                currentURL.pathname = currentURL.pathname.replace('agent-chatbot.html', 'mock-passport-website.html');
+                const mockWebURL = currentURL.toString();
+                await botResponse('View complete details on the <a href="' + mockWebURL + '" target="_blank" style="color: #0066cc; text-decoration: underline;">Mock Passport Website</a>');
+            } catch (error) {
+                const fallbackURL = window.location.href.replace('agent-chatbot.html', 'mock-passport-website.html');
+                await botResponse('View complete details on the <a href="' + fallbackURL + '" target="_blank" style="color: #0066cc; text-decoration: underline;">Mock Passport Website</a>');
+            }
+        }
+
+        function getApplicationStatus() {
+            return {
+                fresh: appliedTypes.includes('fresh'),
+                reissue: appliedTypes.includes('reissue'),
+                identity: appliedTypes.includes('identity'),
+                pcc: appliedTypes.includes('pcc')
+            };
         }
 
         async function initChat() {
             loadUserData();
             
-            await botResponse('👋 Hello! I\'m your Passport Assistant. I can help you automate your passport application.');
+            await botResponse('👋 Hello! I\'m your Passport Assistant with background automation.');
             
-            if (userData) {
-                await botResponse(`Welcome back! I remember your details from last time. What would you like to do?`, {
-                    quickActions: [
-                        { icon: '📘', text: 'Fresh Passport', onClick: () => selectTask('fresh') },
-                        { icon: '🔄', text: 'Re-issue', onClick: () => selectTask('reissue') },
-                        { icon: '👮', text: 'PCC', onClick: () => selectTask('pcc') },
-                        { icon: '🆔', text: 'Identity Cert', onClick: () => selectTask('identity') }
-                    ]
-                });
-            } else {
-                await botResponse('What would you like to do today?', {
-                    quickActions: [
-                        { icon: '📘', text: 'Fresh Passport', onClick: () => selectTask('fresh') },
-                        { icon: '🔄', text: 'Re-issue', onClick: () => selectTask('reissue') },
-                        { icon: '👮', text: 'PCC', onClick: () => selectTask('pcc') },
-                        { icon: '🆔', text: 'Identity Cert', onClick: () => selectTask('identity') }
-                    ]
+            const status = getApplicationStatus();
+            const actions = [];
+            
+            if (!status.fresh) {
+                actions.push({ 
+                    icon: '📘', 
+                    text: 'Fresh Passport', 
+                    onClick: () => selectTask('fresh')
                 });
             }
+            
+            if (status.fresh) {
+                actions.push({ 
+                    icon: '🔄', 
+                    text: 'Re-issue Passport', 
+                    onClick: () => selectTask('reissue')
+                });
+            }
+            
+            actions.push({ 
+                icon: '👮', 
+                text: 'PCC', 
+                onClick: () => selectTask('pcc')
+            });
+            
+            actions.push({ 
+                icon: '🆔', 
+                text: 'Identity Certificate', 
+                onClick: () => selectTask('identity')
+            });
+
+            const apps = localStorage.getItem('submitted_applications');
+            if (apps && JSON.parse(apps).length > 0) {
+                actions.push({ 
+                    icon: '📋', 
+                    text: 'My Applications', 
+                    onClick: () => viewApplications()
+                });
+            }
+            
+            await botResponse('What would you like to do?', { quickActions: actions });
         }
 
-        initChat();
+        // Auto-login if credentials exist
+        const savedLogin = localStorage.getItem(LOGIN_KEY);
+        if (savedLogin) {
+            try {
+                loginCredentials = JSON.parse(savedLogin);
+                currentUserName = loginCredentials.name || '';
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('chatSection').style.display = 'flex';
+                document.getElementById('userName').textContent = loginCredentials.name || 'User';
+                loadUserData();
+                initChat();
+            } catch (error) {
+                console.error('Error loading saved login:', error);
+                localStorage.removeItem(LOGIN_KEY);
+            }
+        }
     </script>
 </body>
 </html>
