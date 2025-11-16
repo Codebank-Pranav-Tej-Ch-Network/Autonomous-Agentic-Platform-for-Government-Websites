@@ -9,7 +9,6 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script type="text/javascript">
         (function(){
-            // Initialize EmailJS with your public key
             emailjs.init('WtfWvw_JybIEOIjHq');
         })();
     </script>
@@ -270,10 +269,11 @@
             font-size: 28px;
             letter-spacing: 10px;
             font-weight: bold;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
+            /* This is the fix for older Safari */
+-webkit-user-select: none;  
+
+/* This is your original line for modern browsers */
+user-select: none;
         }
 
         .modal {
@@ -791,7 +791,7 @@
                                 <p>I hereby declare that the information provided is true and correct.</p>
                                 
                                 <div class="declaration-actions">
-                                    <button type="button" class="btn-confirm" onclick="confirmDeclaration()">✓ Confirm</button>
+                                    <button type="button" class="btn-confirm" onclick="confirmDeclaration('fresh')">✓ Confirm</button>
                                     <button type="button" class="btn-exit" onclick="exitApplication()">✕ Exit</button>
                                 </div>
                             </div>
@@ -800,7 +800,7 @@
                                 <div class="captcha-container">
                                     <p><strong>Enter CAPTCHA:</strong></p>
                                     <div class="captcha-image" id="captchaCode"></div>
-                                    <button type="button" class="btn-secondary" onclick="refreshCaptcha()">🔄 Refresh</button>
+                                    <button type="button" class="btn-secondary" onclick="refreshCaptcha('fresh')">🔄 Refresh</button>
                                     <input type="text" id="captchaInput" placeholder="Enter CAPTCHA" maxlength="6" style="text-align: center; font-size: 18px; padding: 10px; width: 200px; border: 2px solid #ccc; border-radius: 4px; margin: 10px;">
                                 </div>
                                 
@@ -987,7 +987,7 @@
                                 <p>I declare that all information provided is accurate.</p>
                                 
                                 <div class="declaration-actions">
-                                    <button type="button" class="btn-confirm" onclick="confirmDeclaration()">✓ Confirm</button>
+                                    <button type="button" class="btn-confirm" onclick="confirmDeclaration('pcc')">✓ Confirm</button>
                                     <button type="button" class="btn-exit" onclick="exitApplication()">✕ Exit</button>
                                 </div>
                             </div>
@@ -996,7 +996,7 @@
                                 <div class="captcha-container">
                                     <p><strong>Enter CAPTCHA:</strong></p>
                                     <div class="captcha-image" id="pccCaptchaCode"></div>
-                                    <button type="button" class="btn-secondary" onclick="refreshCaptcha()">🔄 Refresh</button>
+                                    <button type="button" class="btn-secondary" onclick="refreshCaptcha('pcc')">🔄 Refresh</button>
                                     <input type="text" class="captchaInput" placeholder="Enter CAPTCHA" maxlength="6" style="text-align: center; font-size: 18px; padding: 10px; width: 200px; border: 2px solid #ccc; border-radius: 4px; margin: 10px;">
                                 </div>
                                 
@@ -1059,7 +1059,7 @@
                                         <select class="citizenship2" required>
                                             <option value="">Select</option>
                                             <option value="Birth">Birth</option>
-                                            <option value="Descent">Descent>
+                                            <option value="Descent">Descent</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
@@ -1175,7 +1175,7 @@
                                 <p>I declare that all information provided is accurate.</p>
                                 
                                 <div class="declaration-actions">
-                                    <button type="button" class="btn-confirm" onclick="confirmDeclaration()">✓ Confirm</button>
+                                    <button type="button" class="btn-confirm" onclick="confirmDeclaration('identity')">✓ Confirm</button>
                                     <button type="button" class="btn-exit" onclick="exitApplication()">✕ Exit</button>
                                 </div>
                             </div>
@@ -1184,7 +1184,7 @@
                                 <div class="captcha-container">
                                     <p><strong>Enter CAPTCHA:</strong></p>
                                     <div class="captcha-image" id="identityCaptchaCode"></div>
-                                    <button type="button" class="btn-secondary" onclick="refreshCaptcha()">🔄 Refresh</button>
+                                    <button type="button" class="btn-secondary" onclick="refreshCaptcha('identity')">🔄 Refresh</button>
                                     <input type="text" class="captchaInput2" placeholder="Enter CAPTCHA" maxlength="6" style="text-align: center; font-size: 18px; padding: 10px; width: 200px; border: 2px solid #ccc; border-radius: 4px; margin: 10px;">
                                 </div>
                                 
@@ -1239,79 +1239,108 @@
         // Auto-login and auto-fill
         window.addEventListener('load', function() {
             console.log('🌐 Mock website loaded');
-            const automationData = localStorage.getItem('automation_data');
-            if (automationData) {
-                const data = JSON.parse(automationData);
-                console.log('📦 Found automation data:', data);
-                if (Date.now() - data.timestamp < 300000) {
-                    console.log('⏰ Timestamp valid, starting auto-login...');
-                    setTimeout(() => autoLogin(data), 1000);
+            
+            // Check if this is being opened directly by user or from automation
+            const urlParams = new URLSearchParams(window.location.search);
+            const isFromAutomation = urlParams.has('automation');
+            
+            if (isFromAutomation) {
+                console.log('🤖 Opened from automation, checking for automation data...');
+                const automationData = localStorage.getItem('automation_data');
+                if (automationData) {
+                    const data = JSON.parse(automationData);
+                    console.log('📦 Found automation data:', data);
+                    
+                    // Check timestamp is fresh (within 30 seconds)
+                    if (Date.now() - data.timestamp < 30000) {
+                        console.log('⏰ Timestamp valid, starting auto-login...');
+                        setTimeout(() => autoLogin(data), 1000);
+                    } else {
+                        console.log('⏰ Timestamp expired, clearing data');
+                        localStorage.removeItem('automation_data');
+                    }
                 } else {
-                    console.log('⏰ Timestamp expired');
+                    console.log('❌ No automation data found');
                 }
             } else {
-                console.log('❌ No automation data found');
+                console.log('👤 Opened directly by user - normal mode');
+                // Clear any old automation data to prevent interference
+                localStorage.removeItem('automation_data');
             }
         });
 
         async function autoLogin(data) {
-            console.log('🤖 Auto-login started...');
-            console.log('📋 AUTOMATION DATA:', data);
-            console.log('🎯 TARGET APPLICATION TYPE:', data.applicationType);
+            console.log('🤖 ========== AUTO-LOGIN STARTED ==========');
+            console.log('📦 Received data:', data);
+            console.log('🎯 CRITICAL: Application type from data:', data.applicationType);
             
-            document.getElementById('loginName').value = data.loginName;
-            document.getElementById('loginEmail').value = data.loginEmail;
-            document.getElementById('loginPassword').value = data.loginPassword;
-            
-            await sleep(500);
-            
-            currentUser = data.loginEmail;
-            currentUserName = data.loginName;
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-            document.getElementById('userName').textContent = data.loginName;
-            document.getElementById('welcomeName').textContent = data.loginName;
-            
-            console.log('✅ Logged in as:', data.loginName);
-            
-            loadApplications();
-            await sleep(1000);
-            
-            console.log('📄 Opening services page...');
-            showPage(null, 'services');
-            await sleep(1000);
-            
-            console.log('🎯 Starting application type:', data.applicationType);
-            console.log('🔴 BEFORE startApplication - currentAppType:', currentAppType);
-            
-            startApplication(data.applicationType);
-            
-            console.log('🟢 AFTER startApplication - currentAppType:', currentAppType);
-            
-            await sleep(2000);
-            
-            console.log('✏️ Starting auto-fill...');
-            console.log('📋 Current application type before filling:', currentAppType);
-            
-            await autoFillAllStages(data);
+            try {
+                console.log('📝 Step 1: Filling login fields...');
+                document.getElementById('loginName').value = data.loginName;
+                document.getElementById('loginEmail').value = data.loginEmail;
+                document.getElementById('loginPassword').value = data.loginPassword;
+                console.log('✅ Login fields filled');
+                
+                await sleep(500);
+                
+                console.log('📝 Step 2: Setting user data...');
+                currentUser = data.loginEmail;
+                currentUserName = data.loginName;
+                console.log('✅ User data set:', currentUserName);
+                
+                console.log('📝 Step 3: Switching to main app...');
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                document.getElementById('userName').textContent = data.loginName;
+                document.getElementById('welcomeName').textContent = data.loginName;
+                console.log('✅ Switched to main app');
+                
+                console.log('📝 Step 4: Loading applications...');
+                loadApplications();
+                console.log('✅ Applications loaded');
+                
+                await sleep(1000);
+                
+                console.log('📝 Step 5: Opening services page...');
+                showPage(null, 'services');
+                console.log('✅ Services page opened');
+                
+                await sleep(1000);
+                
+                console.log('📝 Step 6: Starting application...');
+                console.log('🎯 USING Application type:', data.applicationType);
+                
+                // CRITICAL FIX: Use data.applicationType, not some other variable
+                const appType = data.applicationType;
+                console.log('🎯 Starting application with type:', appType);
+                
+                startApplication(appType);
+                console.log('✅ Application started for:', appType);
+                
+                await sleep(2000);  // Increased wait time
+                
+                console.log('📝 Step 7: Starting auto-fill...');
+                await autoFillAllStages(data);
+                console.log('✅ Auto-fill completed');
+                
+            } catch (error) {
+                console.error('❌ ERROR in autoLogin:', error);
+                console.error('Error stack:', error.stack);
+            }
         }
 
         async function autoFillAllStages(data) {
             console.log('🤖 Auto-filling all stages...');
-            console.log('📋 Application Type:', data.applicationType);
-            
-            // CRITICAL: Wait for the correct form to load
-            await sleep(1500);
             
             for (let stage = 1; stage <= totalStages; stage++) {
                 console.log(`📝 Filling stage ${stage}/${totalStages}...`);
                 await fillCurrentStage(data);
-                await sleep(1000);
+                await sleep(800);
                 
                 if (stage < totalStages) {
                     console.log(`➡️ Moving to next stage...`);
                     nextStage();
-                    await sleep(1000);
+                    await sleep(800);
                 }
             }
             
@@ -1338,10 +1367,9 @@
         }
 
         async function fillCurrentStage(data) {
-            console.log(`🔄 Filling stage ${currentStage}/${totalStages}...`);
+            console.log(`📄 Filling stage ${currentStage}/${totalStages}...`);
             console.log('📝 Data to fill:', data);
             
-            // Wait for stage to be fully loaded
             await sleep(500);
             
             const fieldMap = {
@@ -1378,39 +1406,44 @@
                 if (data[field]) {
                     let filled = false;
                     for (const selector of selectors) {
-                        const el = document.querySelector(selector);
-                        if (el && el.offsetParent !== null) {
-                            // Set the value
-                            el.value = data[field];
-                            
-                            // Force the value to stick
-                            el.setAttribute('value', data[field]);
-                            
-                            // Trigger multiple events to ensure it registers
-                            el.dispatchEvent(new Event('input', { bubbles: true }));
-                            el.dispatchEvent(new Event('change', { bubbles: true }));
-                            el.dispatchEvent(new Event('blur', { bubbles: true }));
-                            
-                            // Visual feedback
-                            el.classList.add('auto-filling');
-                            
-                            // Wait a moment
-                            await sleep(100);
-                            
-                            // Verify it stuck
-                            if (el.value === data[field]) {
-                                console.log(`✅ ${field} = ${data[field]}`);
-                                filledCount++;
-                                filled = true;
-                                el.classList.remove('auto-filling');
-                                break;
-                            } else {
-                                console.warn(`⚠️ ${field} didn't stick, trying again...`);
+                        const elements = document.querySelectorAll(selector);
+                        
+                        for (const el of elements) {
+                            if (el && el.offsetParent !== null) {
                                 el.value = data[field];
-                                await sleep(50);
+                                el.setAttribute('value', data[field]);
+                                
+                                el.dispatchEvent(new Event('input', { bubbles: true }));
+                                el.dispatchEvent(new Event('change', { bubbles: true }));
+                                el.dispatchEvent(new Event('blur', { bubbles: true }));
+                                
+                                el.classList.add('auto-filling');
+                                
+                                await sleep(100);
+                                
+                                if (el.value === data[field]) {
+                                    console.log(`✅ ${field} = ${data[field]} (${selector})`);
+                                    filledCount++;
+                                    filled = true;
+                                    el.classList.remove('auto-filling');
+                                    break;
+                                } else {
+                                    el.value = data[field];
+                                    await sleep(50);
+                                    if (el.value === data[field]) {
+                                        console.log(`✅ ${field} = ${data[field]} (retry)`);
+                                        filledCount++;
+                                        filled = true;
+                                        el.classList.remove('auto-filling');
+                                        break;
+                                    }
+                                }
                             }
                         }
+                        
+                        if (filled) break;
                     }
+                    
                     if (!filled) {
                         console.error(`❌ Failed to fill: ${field}`);
                     }
@@ -1457,7 +1490,6 @@
             
             console.log(`📊 Filled ${filledCount} fields in stage ${currentStage}`);
             
-            // Extra wait to ensure everything is settled
             await sleep(300);
         }
 
@@ -1468,12 +1500,10 @@
         window.addEventListener('message', function(event) {
             console.log('📨 Received message:', event.data);
             if (event.data.type === 'SUBMIT_APPLICATION') {
-                console.log('✅ Submission command received from assistant');
-                console.log('CAPTCHA from assistant:', event.data.captcha);
+                console.log('✅ Submission command from assistant');
                 
                 localStorage.setItem('automation_in_progress', 'true');
                 
-                // Directly submit without showing CAPTCHA modal
                 setTimeout(() => {
                     verifyAndSubmit();
                     localStorage.removeItem('automation_in_progress');
@@ -1523,27 +1553,26 @@
                 event.target.classList.add('active');
             }
             
-            // Load data when switching to these pages
             if (page === 'applications') {
                 loadApplications();
             } else if (page === 'track') {
                 loadTracking();
             } else if (page === 'home') {
-                loadApplications(); // Refresh home applications too
+                loadApplications();
             }
         }
 
         function startApplication(type) {
-            console.log('🚀 START APPLICATION CALLED');
-            console.log('📋 Type parameter received:', type);
-            console.log('🔴 BEFORE setting - currentAppType:', currentAppType);
+            console.log('🎯 Starting application:', type);
+            
+            // Clean up ALL previous states
+            hideAllVerificationSections();
+            resetAllDeclarationButtons();
+            resetForm();
             
             currentAppType = type;
             totalStages = stageCounts[type];
             currentStage = 1;
-            
-            console.log('🟢 AFTER setting - currentAppType:', currentAppType);
-            console.log('📊 Total stages for this type:', totalStages);
             
             document.getElementById('servicesPage').classList.remove('active');
             document.getElementById('applicationPage').classList.add('active');
@@ -1556,42 +1585,32 @@
             };
             document.getElementById('appTitle').textContent = titles[type];
             
-            // Hide all stage groups first
-            document.getElementById('freshStages').style.display = 'none';
-            document.getElementById('pccStages').style.display = 'none';
-            document.getElementById('identityStages').style.display = 'none';
-            
-            // Show the correct stage group
-            if (type === 'fresh' || type === 'reissue') {
-                document.getElementById('freshStages').style.display = 'block';
-                console.log('✅ Showing Fresh/Reissue stages');
-            } else if (type === 'pcc') {
-                document.getElementById('pccStages').style.display = 'block';
-                console.log('✅ Showing PCC stages');
-            } else if (type === 'identity') {
-                document.getElementById('identityStages').style.display = 'block';
-                console.log('✅ Showing Identity stages');
-            }
-            
-            // Remove active class from all stages
+            // Hide all stages
             document.querySelectorAll('.form-stage').forEach(stage => {
                 stage.classList.remove('active');
             });
             
-            // Activate first stage
-            const stageId = type === 'reissue' ? 'fresh' : type;
-            const firstStage = document.getElementById(`${stageId}_stage1`);
-            if (firstStage) {
-                firstStage.classList.add('active');
-                console.log(`✅ Activated first stage: ${stageId}_stage1`);
-            } else {
-                console.error(`❌ Could not find stage: ${stageId}_stage1`);
+            // Hide all form containers
+            document.getElementById('freshStages').style.display = 'none';
+            document.getElementById('pccStages').style.display = 'none';
+            document.getElementById('identityStages').style.display = 'none';
+            
+            // Show correct form
+            if (type === 'fresh' || type === 'reissue') {
+                document.getElementById('freshStages').style.display = 'block';
+                document.getElementById('fresh_stage1').classList.add('active');
+            } else if (type === 'pcc') {
+                document.getElementById('pccStages').style.display = 'block';
+                document.getElementById('pcc_stage1').classList.add('active');
+            } else if (type === 'identity') {
+                document.getElementById('identityStages').style.display = 'block';
+                document.getElementById('identity_stage1').classList.add('active');
             }
             
             updateButtons();
-            refreshCaptcha();
+            refreshCaptcha(type);
             
-            console.log('✅ Application started for type:', currentAppType);
+            console.log(`✅ ${type} application started`);
         }
 
         function nextStage() {
@@ -1621,12 +1640,24 @@
             document.getElementById('nextBtn').style.display = currentStage < totalStages ? 'block' : 'none';
         }
 
-        function confirmDeclaration() {
-            const verificationId = (currentAppType === 'fresh' || currentAppType === 'reissue') ? 'verificationSection' : 
-                                 currentAppType === 'pcc' ? 'pccVerificationSection' : 'identityVerificationSection';
-            document.getElementById(verificationId).style.display = 'block';
+        function confirmDeclaration(type) {
+            console.log('🔐 Confirming declaration for:', type);
+            
+            const verificationId = type === 'fresh' || type === 'reissue' ? 'verificationSection' : 
+                                 type === 'pcc' ? 'pccVerificationSection' : 'identityVerificationSection';
+            
+            const section = document.getElementById(verificationId);
+            if (section) {
+                section.style.display = 'block';
+                console.log('✅ Showing verification section:', verificationId);
+            }
+            
+            // Disable button
             event.target.disabled = true;
             event.target.style.background = '#ccc';
+            
+            // Generate fresh CAPTCHA for THIS form
+            refreshCaptcha(type);
         }
 
         function exitApplication() {
@@ -1636,17 +1667,26 @@
             }
         }
 
-        function refreshCaptcha() {
+        function refreshCaptcha(type) {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             captchaCode = '';
             for (let i = 0; i < 6; i++) {
                 captchaCode += chars.charAt(Math.floor(Math.random() * chars.length));
             }
             
-            ['captchaCode', 'pccCaptchaCode', 'identityCaptchaCode'].forEach(id => {
-                const el = document.getElementById(id);
+            console.log(`🔐 Generated CAPTCHA for ${type}:`, captchaCode);
+            
+            // Update the correct CAPTCHA display
+            if (type === 'fresh' || type === 'reissue') {
+                const el = document.getElementById('captchaCode');
                 if (el) el.textContent = captchaCode;
-            });
+            } else if (type === 'pcc') {
+                const el = document.getElementById('pccCaptchaCode');
+                if (el) el.textContent = captchaCode;
+            } else if (type === 'identity') {
+                const el = document.getElementById('identityCaptchaCode');
+                if (el) el.textContent = captchaCode;
+            }
         }
 
         function getAllFormData() {
@@ -1654,76 +1694,188 @@
                 type: currentAppType
             };
 
-            // Collect all visible form fields
-            const form = document.getElementById('applicationForm');
+            console.log('📊 Collecting form data for:', currentAppType);
+
+            // ID-based fields
+            const idFields = {
+                'givenName': 'givenName',
+                'surname': 'surname',
+                'dob': 'dob',
+                'gender': 'gender',
+                'placeOfBirth': 'placeOfBirth',
+                'maritalStatus': 'maritalStatus',
+                'citizenship': 'citizenship',
+                'employment': 'employment',
+                'education': 'education',
+                'fatherGivenName': 'fatherGivenName',
+                'fatherSurname': 'fatherSurname',
+                'motherGivenName': 'motherGivenName',
+                'motherSurname': 'motherSurname',
+                'houseNo': 'houseNo',
+                'city': 'city',
+                'pincode': 'pincode',
+                'state': 'state',
+                'mobile': 'mobile',
+                'email': 'email',
+                'emergencyName': 'emergencyName',
+                'emergencyMobile': 'emergencyMobile',
+                'emergencyAddress': 'emergencyAddress'
+            };
             
-            // Get ID-based fields first (highest priority)
-            const idFields = [
-                'givenName', 'surname', 'dob', 'gender', 'placeOfBirth', 'maritalStatus',
-                'citizenship', 'employment', 'education', 'fatherGivenName', 'fatherSurname',
-                'motherGivenName', 'motherSurname', 'houseNo', 'city', 'pincode', 'state',
-                'mobile', 'email', 'emergencyName', 'emergencyMobile', 'emergencyAddress',
-                'pccPassportNumber', 'pccPassportDate', 'pccCountry'
-            ];
-            
-            idFields.forEach(fieldId => {
+            Object.entries(idFields).forEach(([fieldId, dataKey]) => {
                 const el = document.getElementById(fieldId);
                 if (el && el.value && el.value.trim()) {
-                    data[fieldId] = el.value.trim();
+                    data[dataKey] = el.value.trim();
+                    console.log(`✅ ID: ${dataKey} = ${el.value.trim()}`);
                 }
             });
             
-            // Get class-based fields (for PCC and Identity forms)
-            const classFields = [
-                'givenName', 'givenName2', 'surname', 'surname2', 'dob', 'dob2', 
-                'gender', 'gender2', 'placeOfBirth', 'placeOfBirth2', 'maritalStatus', 'maritalStatus2',
-                'citizenship', 'citizenship2', 'employment', 'employment2', 'education', 'education2',
-                'fatherGivenName', 'fatherGivenName2', 'fatherSurname', 'fatherSurname2',
-                'motherGivenName', 'motherGivenName2', 'motherSurname', 'motherSurname2',
-                'houseNo', 'houseNo2', 'city', 'city2', 'pincode', 'pincode2', 'state', 'state2',
-                'mobile', 'mobile2', 'email', 'email2', 'passportNumber', 'passportDate', 'pccCountry'
-            ];
-            
-            classFields.forEach(className => {
-                const el = document.querySelector(`.${className}`);
-                if (el && el.value && el.value.trim() && !data[className]) {
-                    data[className] = el.value.trim();
+            // Class-based fields for PCC
+            if (currentAppType === 'pcc') {
+                const pccFields = {
+                    '.givenName': 'givenName',
+                    '.surname': 'surname',
+                    '.dob': 'dob',
+                    '.gender': 'gender',
+                    '.placeOfBirth': 'placeOfBirth',
+                    '.maritalStatus': 'maritalStatus',
+                    '.citizenship': 'citizenship',
+                    '.employment': 'employment',
+                    '.education': 'education',
+                    '.fatherGivenName': 'fatherGivenName',
+                    '.fatherSurname': 'fatherSurname',
+                    '.motherGivenName': 'motherGivenName',
+                    '.motherSurname': 'motherSurname',
+                    '.houseNo': 'houseNo',
+                    '.city': 'city',
+                    '.pincode': 'pincode',
+                    '.state': 'state',
+                    '.mobile': 'mobile',
+                    '.email': 'email'
+                };
+                
+                Object.entries(pccFields).forEach(([selector, dataKey]) => {
+                    if (!data[dataKey]) {
+                        const el = document.querySelector(selector);
+                        if (el && el.value && el.value.trim()) {
+                            data[dataKey] = el.value.trim();
+                            console.log(`✅ PCC Class: ${dataKey} = ${el.value.trim()}`);
+                        }
+                    }
+                });
+                
+                // PCC-specific fields
+                const pccPassportNum = document.getElementById('pccPassportNumber') || document.querySelector('.passportNumber');
+                if (pccPassportNum && pccPassportNum.value) {
+                    data.passportNumber = pccPassportNum.value.trim();
+                    console.log(`✅ PCC Passport Number = ${pccPassportNum.value.trim()}`);
                 }
-            });
+                
+                const pccPassportDate = document.getElementById('pccPassportDate') || document.querySelector('.passportDate');
+                if (pccPassportDate && pccPassportDate.value) {
+                    data.passportDate = pccPassportDate.value.trim();
+                    console.log(`✅ PCC Passport Date = ${pccPassportDate.value.trim()}`);
+                }
+                
+                const pccCountry = document.getElementById('pccCountry') || document.querySelector('.pccCountry');
+                if (pccCountry && pccCountry.value) {
+                    data.pccCountry = pccCountry.value.trim();
+                    console.log(`✅ PCC Country = ${pccCountry.value.trim()}`);
+                }
+            }
             
-            // Get radio button values
+            // Class-based fields for Identity
+            if (currentAppType === 'identity') {
+                const identityFields = {
+                    '.givenName2': 'givenName',
+                    '.surname2': 'surname',
+                    '.dob2': 'dob',
+                    '.gender2': 'gender',
+                    '.placeOfBirth2': 'placeOfBirth',
+                    '.maritalStatus2': 'maritalStatus',
+                    '.citizenship2': 'citizenship',
+                    '.employment2': 'employment',
+                    '.education2': 'education',
+                    '.fatherGivenName2': 'fatherGivenName',
+                    '.fatherSurname2': 'fatherSurname',
+                    '.motherGivenName2': 'motherGivenName',
+                    '.motherSurname2': 'motherSurname',
+                    '.houseNo2': 'houseNo',
+                    '.city2': 'city',
+                    '.pincode2': 'pincode',
+                    '.state2': 'state',
+                    '.mobile2': 'mobile',
+                    '.email2': 'email'
+                };
+                
+                Object.entries(identityFields).forEach(([selector, dataKey]) => {
+                    if (!data[dataKey]) {
+                        const el = document.querySelector(selector);
+                        if (el && el.value && el.value.trim()) {
+                            data[dataKey] = el.value.trim();
+                            console.log(`✅ Identity Class: ${dataKey} = ${el.value.trim()}`);
+                        }
+                    }
+                });
+            }
+            
+            // Radio buttons
             const radioGroups = ['applicationType', 'bookletType', 'nonECR', 'previousIC'];
             radioGroups.forEach(name => {
                 const checked = document.querySelector(`input[name="${name}"]:checked`);
                 if (checked) {
                     data[name] = checked.value;
+                    console.log(`✅ Radio: ${name} = ${checked.value}`);
                 }
             });
 
-            console.log('📦 Collected form data:', data);
+            console.log('📦 Final data:', data);
             return data;
         }
 
         function verifyAndSubmit() {
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            console.log('🎯 SUBMISSION STARTED');
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            console.log('📋 currentAppType:', currentAppType);
-            console.log('📊 totalStages:', totalStages);
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('🔍 Verifying and submitting...');
+            console.log('Current App Type:', currentAppType);
+            console.log('Expected CAPTCHA:', captchaCode);
             
-            // CRITICAL: Verify currentAppType is correct
-            if (!currentAppType || currentAppType === '') {
-                console.error('❌ CRITICAL ERROR: currentAppType is empty!');
-                alert('Error: Application type not set. Please try again.');
+            // Get correct CAPTCHA input
+            let captchaInput;
+            if (currentAppType === 'fresh' || currentAppType === 'reissue') {
+                captchaInput = document.getElementById('captchaInput');
+            } else if (currentAppType === 'pcc') {
+                captchaInput = document.querySelector('#pccVerificationSection .captchaInput');
+            } else if (currentAppType === 'identity') {
+                captchaInput = document.querySelector('#identityVerificationSection .captchaInput2');
+            }
+            
+            if (!captchaInput) {
+                console.error('❌ CAPTCHA input not found for', currentAppType);
+                alert('Error: CAPTCHA input not found. Please refresh.');
                 return;
             }
             
-            // CRITICAL: Collect data right before submission
+            const userInput = captchaInput.value.toUpperCase().trim();
+            console.log('User entered:', userInput);
+            
+            if (!userInput) {
+                alert('⚠️ Please enter the CAPTCHA code!');
+                captchaInput.focus();
+                return;
+            }
+            
+            if (userInput !== captchaCode.toUpperCase()) {
+                alert('❌ Invalid CAPTCHA! Please try again.');
+                captchaInput.value = '';
+                captchaInput.focus();
+                return;
+            }
+            
+            console.log('✅ CAPTCHA verified for', currentAppType);
+            
             allFormData = getAllFormData();
             
-            console.log('📦 Collected form data:', allFormData);
-            console.log('📋 Data.type:', allFormData.type);
+            console.log('📦 Form data collected:', allFormData);
+            console.log('📋 Submitting type:', currentAppType);
 
             let applicantName = '';
             const givenNameEl = document.getElementById('givenName') || 
@@ -1735,26 +1887,21 @@
             
             if (givenNameEl && givenNameEl.value) {
                 applicantName = givenNameEl.value + (surnameEl && surnameEl.value ? ' ' + surnameEl.value : '');
-                console.log('✅ Applicant name:', applicantName);
             } else {
                 applicantName = currentUserName || 'Unknown User';
-                console.warn('⚠️ Using default name:', applicantName);
             }
 
             const emailEl = document.getElementById('email') || 
                           document.querySelector('.email') || 
                           document.querySelector('.email2');
             const userEmail = emailEl && emailEl.value ? emailEl.value : currentUser;
-            console.log('📧 Email:', userEmail);
 
             const refNum = 'ARN' + Date.now().toString().slice(-10);
-            console.log('🔢 Reference:', refNum);
             
             const fee = calculateApplicationFee(allFormData);
-            console.log('💰 Fee:', fee);
             
             const app = {
-                type: currentAppType, // CRITICAL: Use currentAppType, not allFormData.type
+                type: currentAppType,
                 referenceNumber: refNum,
                 applicantName: applicantName.trim(),
                 submissionDate: new Date().toLocaleDateString('en-GB'),
@@ -1765,40 +1912,76 @@
                 fullData: allFormData
             };
             
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            console.log('💾 FINAL APPLICATION OBJECT:');
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            console.log('Type:', app.type);
-            console.log('Reference:', app.referenceNumber);
-            console.log('Name:', app.applicantName);
-            console.log('Email:', app.email);
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('💾 Saving application:', app);
             
             let applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
             applications.push(app);
             localStorage.setItem('submitted_applications', JSON.stringify(applications));
             
-            console.log('✅ Saved to localStorage');
-            
             sendEmailNotification(userEmail, refNum, currentAppType, applicantName.trim(), allFormData);
             
             localStorage.removeItem('automation_data');
             
+            // Clean up
+            hideAllVerificationSections();
+            resetAllDeclarationButtons();
             resetForm();
             
-            // Don't show modal if this is automation
+            // Refresh CAPTCHA for next use
+            refreshCaptcha(currentAppType);
+            
             const isAutomation = localStorage.getItem('automation_in_progress');
             if (!isAutomation) {
                 document.getElementById('refNumber').textContent = refNum;
                 document.getElementById('successModal').classList.add('show');
             }
             
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            console.log('🎉 SUBMISSION COMPLETE');
-            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('✅ Application submitted successfully');
+        }
+
+        function hideAllVerificationSections() {
+            console.log('🧹 Hiding all verification sections...');
+            
+            const sections = ['verificationSection', 'pccVerificationSection', 'identityVerificationSection'];
+            sections.forEach(id => {
+                const section = document.getElementById(id);
+                if (section) {
+                    section.style.display = 'none';
+                }
+            });
+            
+            const allInputs = [
+                document.getElementById('captchaInput'),
+                document.querySelector('#pccVerificationSection .captchaInput'),
+                document.querySelector('#identityVerificationSection .captchaInput2')
+            ];
+            
+            allInputs.forEach(input => {
+                if (input) {
+                    input.value = '';
+                    input.disabled = false;
+                    input.style.background = '';
+                }
+            });
+            
+            console.log('✅ All verification sections hidden');
+        }
+
+        function resetAllDeclarationButtons() {
+            console.log('🔄 Resetting declaration buttons...');
+            
+            const confirmButtons = document.querySelectorAll('.btn-confirm');
+            confirmButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.style.background = '';
+            });
+            
+            console.log('✅ Declaration buttons reset');
         }
 
         function resetForm() {
+            console.log('🔄 Resetting form...');
+            
             document.getElementById('applicationForm').reset();
             const allInputs = document.querySelectorAll('input, select, textarea');
             allInputs.forEach(input => {
@@ -1808,13 +1991,17 @@
                     input.value = '';
                 }
             });
+            
+            currentStage = 1;
+            
+            console.log('✅ Form reset');
         }
 
         function calculateApplicationFee(data) {
             let amount = 0;
             let note = '';
             
-            const dobValue = data.dob || data.dob2 || '';
+            const dobValue = data.dob || '';
             if (dobValue) {
                 const dob = new Date(dobValue);
                 const age = Math.floor((new Date() - dob) / (365.25 * 24 * 60 * 60 * 1000));
@@ -1862,10 +2049,9 @@
             };
             
             const websiteLink = window.location.href.split('?')[0];
-            const mobile = formData.mobile || formData.mobile2 || 'Not provided';
+            const mobile = formData.mobile || 'Not provided';
             const fee = calculateApplicationFee(formData);
             
-            // Email template parameters
             const templateParams = {
                 to_email: email,
                 to_name: name,
@@ -1879,57 +2065,12 @@
                 applicant_name: name
             };
             
-            // Send email using EmailJS
-            // Your EmailJS credentials configured
             emailjs.send('service_9ya085h', 'template_ms0nmhb', templateParams)
                 .then(function(response) {
-                    console.log('✅ Email sent successfully!', response.status, response.text);
-                    console.log('📧 Email sent to:', email);
+                    console.log('✅ Email sent!', response.status);
                 }, function(error) {
-                    console.error('❌ Email failed to send:', error);
-                    console.log('📧 Email would have been sent to:', email);
-                    console.log('Email content:', templateParams);
+                    console.error('❌ Email failed:', error);
                 });
-            
-            // Also log for reference
-            const emailContent = `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📧 EMAIL NOTIFICATION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-TO: ${email}
-SUBJECT: ${typeLabels[type]} Application Submitted Successfully
-
-Dear ${name},
-
-Your ${typeLabels[type]} application has been submitted successfully!
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-APPLICATION DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Reference Number: ${refNum}
-Application Fee: ₹${fee.amount}
-Mobile: ${mobile}
-Submission Date: ${new Date().toLocaleDateString('en-GB')}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⏰ PROCESSING TIMELINE:
-Your application will be verified within 30 days from submission.
-
-📍 TRACK YOUR APPLICATION:
-Visit: ${websiteLink}
-Use Reference Number: ${refNum}
-
-Thank you for using Passport Seva.
-
-Ministry of External Affairs
-Government of India
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            `;
-            
-            console.log(emailContent);
         }
 
         function closeModal() {
@@ -1971,13 +2112,134 @@ Government of India
                 applications.forEach((app, index) => {
                     const data = app.fullData || {};
                     
-                    const displayDob = data.dob || data.dob2 || 'N/A';
-                    const displayGender = data.gender || data.gender2 || 'N/A';
-                    const displayMobile = data.mobile || data.mobile2 || 'N/A';
-                    const displayHouseNo = data.houseNo || data.houseNo2 || '';
-                    const displayCity = data.city || data.city2 || '';
-                    const displayState = data.state || data.state2 || '';
-                    const displayPincode = data.pincode || data.pincode2 || '';
+                    const getValue = (val) => (val && val.trim() !== '') ? val : null;
+                    
+                    let detailRows = `
+                        <div class="app-detail-row">
+                            <div class="app-detail-label">Reference Number:</div>
+                            <div style="color: #0066cc; font-weight: bold;">${app.referenceNumber}</div>
+                        </div>
+                        
+                        <div class="app-detail-row">
+                            <div class="app-detail-label">Applicant Name:</div>
+                            <div>${app.applicantName}</div>
+                        </div>
+                    `;
+                    
+                    const dob = getValue(data.dob);
+                    if (dob) {
+                        detailRows += `
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Date of Birth:</div>
+                                <div>${dob}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    const gender = getValue(data.gender);
+                    if (gender) {
+                        detailRows += `
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Gender:</div>
+                                <div>${gender}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    const email = getValue(app.email || data.email);
+                    if (email) {
+                        detailRows += `
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Email:</div>
+                                <div>${email}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    const mobile = getValue(data.mobile);
+                    if (mobile) {
+                        detailRows += `
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Mobile:</div>
+                                <div>${mobile}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    const houseNo = getValue(data.houseNo);
+                    const city = getValue(data.city);
+                    const state = getValue(data.state);
+                    const pincode = getValue(data.pincode);
+                    
+                    if (houseNo && city && state && pincode) {
+                        detailRows += `
+                            <div class="app-detail-row">
+                                <div class="app-detail-label">Address:</div>
+                                <div>${houseNo}, ${city}, ${state} - ${pincode}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    if (app.type === 'fresh' || app.type === 'reissue') {
+                        const booklet = getValue(data.bookletType);
+                        if (booklet) {
+                            detailRows += `
+                                <div class="app-detail-row">
+                                    <div class="app-detail-label">Booklet Type:</div>
+                                    <div>${booklet} Pages</div>
+                                </div>
+                            `;
+                        }
+                        
+                        const serviceType = getValue(data.applicationType);
+                        if (serviceType) {
+                            detailRows += `
+                                <div class="app-detail-row">
+                                    <div class="app-detail-label">Service Type:</div>
+                                    <div>${serviceType}</div>
+                                </div>
+                            `;
+                        }
+                    }
+                    
+                    if (app.type === 'pcc') {
+                        const passportNum = getValue(data.passportNumber);
+                        if (passportNum) {
+                            detailRows += `
+                                <div class="app-detail-row">
+                                    <div class="app-detail-label">Passport Number:</div>
+                                    <div>${passportNum}</div>
+                                </div>
+                            `;
+                        }
+                        
+                        const country = getValue(data.pccCountry);
+                        if (country) {
+                            detailRows += `
+                                <div class="app-detail-row">
+                                    <div class="app-detail-label">Country:</div>
+                                    <div>${country}</div>
+                                </div>
+                            `;
+                        }
+                    }
+                    
+                    detailRows += `
+                        <div class="app-detail-row">
+                            <div class="app-detail-label">Application Fee:</div>
+                            <div style="color: #2e7d32; font-weight: bold;">₹ ${app.fee ? app.fee.amount : '500'}</div>
+                        </div>
+                        
+                        <div class="app-detail-row">
+                            <div class="app-detail-label">Submission Date:</div>
+                            <div>${app.submissionDate}</div>
+                        </div>
+                        
+                        <div class="app-detail-row">
+                            <div class="app-detail-label">Status:</div>
+                            <div style="color: #4caf50; font-weight: bold;">${app.status}</div>
+                        </div>
+                    `;
                     
                     appContent.innerHTML += `
                         <div class="app-detail-card">
@@ -1995,79 +2257,7 @@ Government of India
                                 </div>
                             </div>
                             
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Reference Number:</div>
-                                <div style="color: #0066cc; font-weight: bold;">${app.referenceNumber}</div>
-                            </div>
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Applicant Name:</div>
-                                <div>${app.applicantName}</div>
-                            </div>
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Date of Birth:</div>
-                                <div>${displayDob}</div>
-                            </div>
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Gender:</div>
-                                <div>${displayGender}</div>
-                            </div>
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Email:</div>
-                                <div>${app.email || 'N/A'}</div>
-                            </div>
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Mobile:</div>
-                                <div>${displayMobile}</div>
-                            </div>
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Address:</div>
-                                <div>${displayHouseNo}, ${displayCity}, ${displayState} - ${displayPincode}</div>
-                            </div>
-                            
-                            ${(app.type === 'fresh' || app.type === 'reissue') ? `
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Booklet Type:</div>
-                                <div>${data.bookletType || 'N/A'} Pages</div>
-                            </div>
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Service Type:</div>
-                                <div>${data.applicationType || 'N/A'}</div>
-                            </div>
-                            ` : ''}
-                            
-                            ${app.type === 'pcc' ? `
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Passport Number:</div>
-                                <div>${data.pccPassportNumber || data.passportNumber || 'N/A'}</div>
-                            </div>
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Country:</div>
-                                <div>${data.pccCountry || 'N/A'}</div>
-                            </div>
-                            ` : ''}
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Application Fee:</div>
-                                <div style="color: #2e7d32; font-weight: bold;">₹ ${app.fee ? app.fee.amount : 'N/A'}</div>
-                            </div>
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Submission Date:</div>
-                                <div>${app.submissionDate}</div>
-                            </div>
-                            
-                            <div class="app-detail-row">
-                                <div class="app-detail-label">Status:</div>
-                                <div style="color: #4caf50; font-weight: bold;">${app.status}</div>
-                            </div>
+                            ${detailRows}
                         </div>
                     `;
                 });
@@ -2075,16 +2265,15 @@ Government of India
         }
 
         function removeApplication(index) {
-            if (confirm('Are you sure you want to remove this application?')) {
+            if (confirm('Remove this application?')) {
                 let applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
                 applications.splice(index, 1);
                 localStorage.setItem('submitted_applications', JSON.stringify(applications));
                 
-                // Reload both pages
                 loadApplications();
                 loadTracking();
                 
-                alert('✅ Application removed successfully!');
+                alert('✅ Application removed!');
             }
         }
 
@@ -2107,61 +2296,42 @@ Government of India
             const data = app.fullData || {};
             
             const pdfContent = `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+┌────────────────────────────────────────────┐
               PASSPORT SEVA
         Ministry of External Affairs
         Government of India
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+└────────────────────────────────────────────┘
 
 APPLICATION TYPE: ${typeLabels[app.type]}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+┌────────────────────────────────────────────┐
 BASIC DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+└────────────────────────────────────────────┘
 
 Reference Number: ${app.referenceNumber}
 Applicant Name: ${app.applicantName}
-Date of Birth: ${data.dob || data.dob2 || 'N/A'}
-Gender: ${data.gender || data.gender2 || 'N/A'}
-Place of Birth: ${data.placeOfBirth || data.placeOfBirth2 || 'N/A'}
-Marital Status: ${data.maritalStatus || data.maritalStatus2 || 'N/A'}
-Mobile: ${data.mobile || data.mobile2 || 'N/A'}
+Date of Birth: ${data.dob || 'N/A'}
+Gender: ${data.gender || 'N/A'}
+Mobile: ${data.mobile || 'N/A'}
 Email: ${app.email}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FAMILY DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Father's Name: ${data.fatherGivenName || data.fatherGivenName2 || ''} ${data.fatherSurname || data.fatherSurname2 || ''}
-Mother's Name: ${data.motherGivenName || data.motherGivenName2 || ''} ${data.motherSurname || data.motherSurname2 || ''}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+┌────────────────────────────────────────────┐
 ADDRESS DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+└────────────────────────────────────────────┘
 
-${data.houseNo || data.houseNo2 || ''}
-${data.city || data.city2 || ''}, ${data.state || data.state2 || ''} - ${data.pincode || data.pincode2 || ''}
+${data.houseNo || ''}
+${data.city || ''}, ${data.state || ''} - ${data.pincode || ''}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+┌────────────────────────────────────────────┐
 APPLICATION DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+└────────────────────────────────────────────┘
 
 Submission Date: ${app.submissionDate}
 Application Fee: ₹${app.fee ? app.fee.amount : 'N/A'}
 Status: ${app.status}
 Processing Time: 30 days
 
-${(app.type === 'fresh' || app.type === 'reissue') ? `
-Service Type: ${data.applicationType || 'N/A'}
-Booklet Type: ${data.bookletType || 'N/A'} Pages
-` : ''}
-
-${app.type === 'pcc' ? `
-Passport Number: ${data.pccPassportNumber || data.passportNumber || 'N/A'}
-Country: ${data.pccCountry || 'N/A'}
-` : ''}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+┌────────────────────────────────────────────┐
 
 This is a computer-generated document.
 No signature is required.
@@ -2179,7 +2349,7 @@ Generated on: ${new Date().toLocaleString('en-GB')}
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
             
-            alert('✅ Application downloaded successfully!');
+            alert('✅ Application downloaded!');
         }
 
         function loadTracking() {
@@ -2207,11 +2377,11 @@ Generated on: ${new Date().toLocaleString('en-GB')}
                     let statusColor = '';
                     
                     if (daysRemaining > 0) {
-                        statusMessage = `Your application is being processed. Expected completion in ${daysRemaining} days.`;
+                        statusMessage = `Application being processed. Expected in ${daysRemaining} days.`;
                         statusColor = '#1976d2';
                         app.status = 'Under Processing';
                     } else {
-                        statusMessage = 'Your application has been verified and processed!';
+                        statusMessage = 'Application verified and processed!';
                         statusColor = '#4caf50';
                         app.status = 'Verified';
                     }
@@ -2244,14 +2414,14 @@ Generated on: ${new Date().toLocaleString('en-GB')}
                             
                             <div class="tracking-box">
                                 <h4 style="color: ${statusColor}; margin-bottom: 10px;">
-                                    ${daysRemaining > 0 ? 'Days Remaining for Verification' : 'Verification Complete'}
+                                    ${daysRemaining > 0 ? 'Days Remaining' : 'Complete'}
                                 </h4>
                                 <div class="days-remaining" style="color: ${statusColor};">${daysRemaining}</div>
                                 <p style="font-size: 14px; color: #666; margin-top: 10px;">
                                     ${statusMessage}
                                 </p>
                                 <div style="margin-top: 15px; background: ${daysRemaining > 0 ? '#e3f2fd' : '#e8f5e9'}; padding: 10px; border-radius: 4px;">
-                                    <strong>Current Status:</strong> 
+                                    <strong>Status:</strong> 
                                     <span style="color: ${daysRemaining > 0 ? '#1976d2' : '#4caf50'}; font-weight: bold;">
                                         ${daysRemaining > 0 ? 'Under Processing' : 'Verified ✓'}
                                     </span>
@@ -2315,8 +2485,6 @@ Generated on: ${new Date().toLocaleString('en-GB')}
             document.getElementById('feeNote').textContent = note;
             document.getElementById('feeResult').classList.add('show');
         }
-
-        refreshCaptcha();
     </script>
 </body>
 </html>

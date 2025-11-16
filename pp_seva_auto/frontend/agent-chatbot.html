@@ -733,7 +733,6 @@
                         element.value = userData[field];
                         console.log(`✓ Filled ${field}:`, userData[field]);
                         
-                        // Highlight the field briefly to show it was filled
                         element.style.background = '#e8f5e9';
                         setTimeout(() => {
                             element.style.background = '';
@@ -741,7 +740,6 @@
                     }
                 });
 
-                // Handle radio buttons
                 ['serviceType', 'bookletType', 'nonECR', 'previousIC'].forEach(name => {
                     if (userData[name]) {
                         const radio = document.querySelector(`input[name="${name}"][value="${userData[name]}"]`);
@@ -781,7 +779,7 @@
                 emergencyName: document.getElementById('emergencyName')?.value || '',
                 emergencyMobile: document.getElementById('emergencyMobile')?.value || '',
                 emergencyAddress: document.getElementById('emergencyAddress')?.value || '',
-                applicationType: currentTask
+                applicationType: currentTask  // CRITICAL: Use currentTask, not old data
             };
 
             if (currentTask === 'fresh' || currentTask === 'reissue') {
@@ -805,11 +803,30 @@
                 return;
             }
             
+            // Clear any existing CAPTCHA UI from previous runs
+            clearOldCaptchaUI();
+            
             saveUserData(data);
             addMessage('All details saved! Start automation', 'user');
             
             await botResponse('✅ Data saved! Starting background automation...');
+            
+            console.log('🎯 IMPORTANT: Starting automation for type:', currentTask);
+            console.log('📦 Data being sent:', data);
+            
             await startBackgroundAutomation(data);
+        }
+
+        function clearOldCaptchaUI() {
+            // Remove any old CAPTCHA boxes from the chat
+            const oldCaptchaBoxes = document.querySelectorAll('.captcha-box');
+            oldCaptchaBoxes.forEach(box => {
+                const messageContent = box.closest('.message-content');
+                if (messageContent) {
+                    messageContent.parentElement.remove();
+                }
+            });
+            console.log('🧹 Cleared old CAPTCHA UI');
         }
 
         async function startBackgroundAutomation(data) {
@@ -846,8 +863,12 @@
             try {
                 const currentURL = new URL(window.location.href);
                 currentURL.pathname = currentURL.pathname.replace('agent-chatbot.html', 'mock-passport-website.html');
+                // Add automation parameter to indicate this is from automation
+                currentURL.searchParams.set('automation', 'true');
                 currentURL.searchParams.set('t', Date.now().toString());
                 const mockWebURL = currentURL.toString();
+                
+                console.log('🔗 Loading mock website:', mockWebURL);
                 
                 iframe.onload = function() {
                     console.log('✅ Mock website iframe loaded');
@@ -856,12 +877,15 @@
                 iframe.src = mockWebURL;
             } catch (error) {
                 console.error('Error loading iframe:', error);
-                const fallbackURL = window.location.href.replace('agent-chatbot.html', 'mock-passport-website.html') + '?t=' + Date.now();
+                const fallbackURL = window.location.href.replace('agent-chatbot.html', 'mock-passport-website.html') + '?automation=true&t=' + Date.now();
+                console.log('🔗 Loading fallback URL:', fallbackURL);
                 iframe.src = fallbackURL;
             }
+             await botResponse('⏱️ Automation started... filling forms automatically...');
+            }
             
-            await botResponse('⏱️ Automation started... filling forms automatically...');
-        }
+           
+        
 
         function handleAutomationMessage(event) {
             console.log('📨 Message received:', event.data);
@@ -876,55 +900,26 @@
             
             const captchaDiv = document.createElement('div');
             captchaDiv.className = 'captcha-box';
-            captchaDiv.id = 'captcha-box-' + Date.now(); // Unique ID for this CAPTCHA
             captchaDiv.innerHTML = `
                 <h4 style="color: #e65100; margin-bottom: 15px;">⏸️ Automation Paused</h4>
                 <p style="margin-bottom: 15px;">Please enter the CAPTCHA to complete your application:</p>
                 <div class="captcha-display">${captchaCode}</div>
-                <input type="text" class="captcha-input-field" placeholder="Enter CAPTCHA" maxlength="6" style="width: 200px; padding: 10px; font-size: 18px; text-align: center; border: 2px solid #ccc; border-radius: 4px; margin: 10px;">
+                <input type="text" id="captchaInputUser" placeholder="Enter CAPTCHA" maxlength="6" style="width: 200px; padding: 10px; font-size: 18px; text-align: center; border: 2px solid #ccc; border-radius: 4px; margin: 10px;">
                 <br>
                 <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
-                    <button class="captcha-confirm-btn" style="padding: 10px 30px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">✓ Confirm & Submit</button>
-                    <button class="captcha-exit-btn" style="padding: 10px 30px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Exit</button>
+                    <button onclick="submitCaptcha('${captchaCode}')" style="padding: 10px 30px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">✓ Confirm & Submit</button>
+                    <button onclick="exitAutomation()" style="padding: 10px 30px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">✕ Exit</button>
                 </div>
             `;
             
             await botResponse('🔐 CAPTCHA Required:', { form: captchaDiv });
-            
-            // Add event listeners after the element is in the DOM
-            setTimeout(() => {
-                const confirmBtn = captchaDiv.querySelector('.captcha-confirm-btn');
-                const exitBtn = captchaDiv.querySelector('.captcha-exit-btn');
-                const inputField = captchaDiv.querySelector('.captcha-input-field');
-                
-                if (confirmBtn) {
-                    confirmBtn.onclick = () => submitCaptcha(captchaCode, captchaDiv);
-                }
-                
-                if (exitBtn) {
-                    exitBtn.onclick = () => exitAutomation(captchaDiv);
-                }
-                
-                if (inputField) {
-                    inputField.addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter') {
-                            submitCaptcha(captchaCode, captchaDiv);
-                        }
-                    });
-                }
-            }, 100);
         }
 
-        window.exitAutomation = async function(captchaBox) {
+        window.exitAutomation = async function() {
             if (confirm('Are you sure you want to exit? All progress will be lost.')) {
                 localStorage.removeItem('automation_data');
                 const iframe = document.getElementById('mockWebsiteFrame');
                 iframe.src = 'about:blank';
-                
-                // Remove the CAPTCHA box
-                if (captchaBox && captchaBox.parentElement) {
-                    captchaBox.parentElement.parentElement.remove();
-                }
                 
                 addMessage('Exit automation', 'user');
                 await botResponse('❌ Automation cancelled. You can start a new application anytime.');
@@ -933,8 +928,8 @@
             }
         };
 
-        window.submitCaptcha = async function(correctCaptcha, captchaBox) {
-            const inputElement = captchaBox.querySelector('.captcha-input-field');
+        window.submitCaptcha = async function(correctCaptcha) {
+            const inputElement = document.getElementById('captchaInputUser');
             if (!inputElement) {
                 console.error('CAPTCHA input not found');
                 return;
@@ -957,22 +952,14 @@
                 return;
             }
 
-            // Disable and hide the CAPTCHA box immediately
             inputElement.disabled = true;
             inputElement.style.background = '#e8f5e9';
-            const buttons = captchaBox.querySelectorAll('button');
+            const buttons = document.querySelectorAll('.captcha-box button');
             buttons.forEach(btn => {
                 btn.disabled = true;
                 btn.style.opacity = '0.5';
                 btn.style.cursor = 'not-allowed';
             });
-            
-            // Hide the entire CAPTCHA box after 1 second
-            setTimeout(() => {
-                if (captchaBox && captchaBox.parentElement) {
-                    captchaBox.parentElement.parentElement.remove();
-                }
-            }, 1000);
 
             addMessage('CAPTCHA entered: ' + userInput, 'user');
             
@@ -992,7 +979,6 @@
 
             await new Promise(resolve => setTimeout(resolve, 3000));
             
-            // Get application details from localStorage
             const applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
             const latestApp = applications[applications.length - 1];
             
@@ -1020,84 +1006,6 @@
             
             await new Promise(resolve => setTimeout(resolve, 1000));
             initChat();
-        };
-
-        // Download passport PDF function
-        window.downloadPassportPDF = function(refNumber) {
-            const applications = JSON.parse(localStorage.getItem('submitted_applications') || '[]');
-            const app = applications.find(a => a.referenceNumber === refNumber);
-            
-            if (!app) {
-                alert('Application not found!');
-                return;
-            }
-            
-            const typeLabels = {
-                'fresh': 'Fresh Passport',
-                'reissue': 'Re-issue Passport',
-                'pcc': 'Police Clearance Certificate',
-                'identity': 'Identity Certificate'
-            };
-            
-            const data = app.fullData || {};
-            
-            // Create PDF content as text
-            const pdfContent = `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-              PASSPORT SEVA
-        Ministry of External Affairs
-        Government of India
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-APPLICATION TYPE: ${typeLabels[app.type]}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-BASIC DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Reference Number: ${app.referenceNumber}
-Applicant Name: ${app.applicantName}
-Date of Birth: ${data.dob || data.dob2 || 'N/A'}
-Gender: ${data.gender || data.gender2 || 'N/A'}
-Mobile: ${data.mobile || data.mobile2 || 'N/A'}
-Email: ${app.email}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ADDRESS DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-${data.houseNo || data.houseNo2 || ''}
-${data.city || data.city2 || ''}, ${data.state || data.state2 || ''} - ${data.pincode || data.pincode2 || ''}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-APPLICATION DETAILS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Submission Date: ${app.submissionDate}
-Application Fee: ₹${app.fee ? app.fee.amount : 'N/A'}
-Status: ${app.status}
-Processing Time: 30 days
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-This is a computer-generated document.
-No signature is required.
-
-Generated on: ${new Date().toLocaleString('en-GB')}
-            `;
-            
-            // Create and download text file
-            const blob = new Blob([pdfContent], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Passport_Application_${refNumber}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            
-            alert('✅ Application downloaded successfully!');
         };
 
         function calculateFeeForUser(data) {
@@ -1143,11 +1051,8 @@ Generated on: ${new Date().toLocaleString('en-GB')}
             
             addMessage(`I want to apply for ${taskNames[task]}`, 'user');
             
-            // Load saved data
             loadUserData();
             
-            // Check if we have any saved data (regardless of application type)
-            // This allows users to edit and reuse their information
             if (userData && Object.keys(userData).length > 5) {
                 await botResponse(`I found your saved details. Would you like to use them or edit?`, {
                     quickActions: [
@@ -1160,7 +1065,6 @@ Generated on: ${new Date().toLocaleString('en-GB')}
                 await botResponse('Please provide your details:', {
                     form: createComprehensiveForm()
                 });
-                // Auto-fill any saved data
                 setTimeout(() => prefillForm(), 200);
             }
         }
