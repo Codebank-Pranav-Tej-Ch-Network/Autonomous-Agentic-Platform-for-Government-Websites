@@ -3,57 +3,45 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
-const PORT = 3000;
+// --- THIS IS THE ONLY CHANGE ---
+const PORT = process.env.PORT || 3000; // Use Render's port, or 3000 for local
+// --- END OF CHANGE ---
 
 // --- CONFIGURATION ---
-// IMPORTANT: This is your connection string.
 const MONGO_URI = 'mongodb+srv://cs24b012_db_user:tranquility%40123@storage-e-id.joof12t.mongodb.net/eidDatabase?appName=storage-e-id';
 
 // --- MIDDLEWARE ---
-app.use(cors()); // Allows your frontend to talk to this backend
-app.use(express.json()); // Allows server to read JSON from request bodies
+app.use(cors());
+app.use(express.json());
 
 // --- DATABASE MODEL ---
 const userSchema = new mongoose.Schema({
-    eId: { type: String, required: true, unique: true },
+    eId: { type: String, required: true, unique: true, index: true },
     name: { type: String, required: true },
     dob: { type: Date, required: true },
     gender: { type: String, required: true },
-    phone: { type: String, required: true, unique: true, index: true }, // Phone must be unique
+    phone: { type: String, required: true, unique: true, index: true },
     address: { type: String, required: true },
     issued: { type: Date, default: Date.now }
 });
 
 const User = mongoose.model('User', userSchema);
 
-// --- DATABASE CONNECTION ---
-mongoose.connect(MONGO_URI)
-    .then(() => {
-        console.log('Successfully connected to MongoDB!');
-    })
-    .catch((error) => {
-        console.error('Failed to connect to MongoDB:', error);
-        process.exit(1); // Exit the server if DB connection fails
-    });
-
 // --- API ROUTES ---
 
 /**
  * @route   POST /api/register
- * @desc    Register a new E-ID user
  */
 app.post('/api/register', async (req, res) => {
     try {
         const { name, dob, gender, phone, address } = req.body;
 
-        // Check if a user with this phone number already exists
         const existingUser = await User.findOne({ phone: phone });
         if (existingUser) {
             console.log('Registration failed: Phone number already in use.');
             return res.status(409).json({ message: 'User already registered with this phone number.' });
         }
 
-        // Generate a new 12-digit E-ID
         let newEId = '';
         let isUnique = false;
         while (!isUnique) {
@@ -64,7 +52,6 @@ app.post('/api/register', async (req, res) => {
             }
         }
 
-        // Create a new user instance
         const newUser = new User({
             eId: newEId,
             name,
@@ -75,9 +62,7 @@ app.post('/api/register', async (req, res) => {
             issued: new Date()
         });
 
-        // Save the new user to the database
         await newUser.save();
-
         console.log('New user registered:', newUser);
         res.status(201).json(newUser);
 
@@ -92,11 +77,10 @@ app.post('/api/register', async (req, res) => {
 
 /**
  * @route   GET /api/search/:eId
- * @desc    Search for a user by their E-ID
  */
 app.get('/api/search/:eId', async (req, res) => {
     try {
-        const eIdToFind = req.params.eId; // This matches the route
+        const eIdToFind = req.params.eId;
 
         if (!eIdToFind || eIdToFind.length !== 12 || !/^\d+$/.test(eIdToFind)) {
             return res.status(400).json({ message: 'Invalid E-ID format. Must be 12 digits.' });
@@ -114,13 +98,73 @@ app.get('/api/search/:eId', async (req, res) => {
 
     } catch (error) {
         console.error('Search error:', error);
-        // --- THIS IS THE FIX ---
-        // Changed "5S00" to "500"
         res.status(500).json({ message: 'Server error during search.', error: error.message });
     }
 });
 
-// --- START THE SERVER ---
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+/**
+ * @route   PUT /api/update
+ */
+app.put('/api/update', async (req, res) => {
+    try {
+        const { eId, name, phone, address } = req.body;
+
+        if (!eId) {
+            return res.status(400).json({ message: 'E-ID is required for updates.' });
+        }
+
+        const user = await User.findOne({ eId: eId });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        const updates = {};
+        if (name) updates.name = name;
+        if (address) updates.address = address;
+
+        if (phone && phone !== user.phone) {
+            const existingUser = await User.findOne({ phone: phone });
+            if (existingUser) {
+                return res.status(409).json({ message: 'This phone number is already registered to another user.' });
+            }
+            updates.phone = phone;
+        }
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ message: 'No valid fields provided for update.' });
+        }
+
+        const updatedUser = await User.findOneAndUpdate(
+            { eId: eId },
+            { $set: updates },
+            { new: true }
+        );
+
+        console.log('User updated:', updatedUser);
+        res.status(200).json(updatedUser);
+
+    } catch (error) {
+        console.error('Update error:', error);
+        if (error.code === 11000) {
+             return res.status(409).json({ message: 'This phone number is already registered to another user.' });
+        }
+        res.status(500).json({ message: 'Server error during update.', error: error.message });
+    }
 });
+
+
+// --- DATABASE CONNECTION & SERVER START ---
+console.log("Connecting to MongoDB...");
+mongoose.connect(MONGO_URI)
+    .then(() => {
+        console.log('Successfully connected to MongoDB!');
+        
+        // Start the Express server
+        app.listen(PORT, () => {
+            console.log(`Server is running on port: ${PORT}`);
+        });
+    })
+    .catch((error) => {
+        console.error('Failed to connect to MongoDB:', error);
+        process.exit(1); // Exit the app if DB connection fails
+    });
