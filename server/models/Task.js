@@ -30,7 +30,7 @@ const taskSchema = new mongoose.Schema({
   taskType: {
     type: String,
     required: true,
-    enum: ['itr_filing', 'digilocker_download', 'epfo_balance'],  // Only these values allowed
+    enum: ['itr_filing', 'search', 'register', 'transfer', 'update'],  // Only these values allowed
     index: true  // Makes queries on taskType faster
   },
   
@@ -303,8 +303,10 @@ taskSchema.pre('save', function(next) {
   // Define required fields for each task type
   const requiredFields = {
     itr_filing: ['pan', 'financialYear', 'income'],
-    digilocker_download: ['aadhaar', 'documentType'],
-    epfo_balance: ['uan', 'password']
+    search: ['regNo', 'state'],
+    register: [],
+    transfer: ['regNo', 'state'],
+    update: ['regNo', 'state']
   };
   
   const required = requiredFields[this.taskType] || [];
