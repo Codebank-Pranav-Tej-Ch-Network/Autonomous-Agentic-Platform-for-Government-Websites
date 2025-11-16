@@ -24,9 +24,10 @@ const { emitTaskProgress, emitTaskCompleted, emitTaskFailed } = require('./webso
 
 // Import automation scripts
 const executeITRFiling = require('../automation/scripts/itrFiling');
-const executeDigiLocker = require('../automation/scripts/digilocker');
-const executeEPFO = require('../automation/scripts/epfo');
-
+const executeSearchVehicle = require('../automation/searchVehicle');
+const { registerVehicle: executeRegisterVehicle } = require('../automation/registerVehicle');
+const { transferOwnership: executeTransferOwnership } = require('../automation/transferOwnership');
+const { updateContacts: executeUpdateContacts } = require('../automation/updateContacts');
 /**
  * Create the task queue
  * 
@@ -63,8 +64,10 @@ const taskQueue = new Bull('automation-tasks', {
  */
 const TASK_EXECUTORS = {
   'itr_filing': executeITRFiling,
-  'digilocker_download': executeDigiLocker,
-  'epfo_balance': executeEPFO
+  'search': executeSearchVehicle,
+  'register': executeRegisterVehicle,
+  'transfer': executeTransferOwnership,
+  'update': executeUpdateContacts
 };
 
 /**
@@ -130,20 +133,65 @@ taskQueue.process(async (job) => {
     };
 
     // Execute the automation script
-    const result = await executor(task, progressCallback);
+    let result;
 
-    // Mark task as completed
-    await task.markAsCompleted(result);
+    // VAHAN tasks use simpler signature (just data)
+    if (['search', 'register', 'transfer', 'update'].includes(task.taskType)) {
+      // Convert task inputData Map to plain object
+      const inputDataObject = {};
+      for (const [key, value] of task.inputData.entries()) {
+        inputDataObject[key] = value;
+      }
+      
+      result = await executor(inputDataObject);
+    } else {
+      // ITR and other tasks use (task, progressCallback)
+      result = await executor(task, progressCallback);
+    }
+    // Check if task needs user input (captcha)
+    if (result.needsCaptcha) {
+      // Task is waiting for captcha - update task status
+      task.status = 'awaiting_input';
+      task.result = result;
+      task.progress = 50;
+      task.progressDetails.push({
+        stage: 'awaiting_captcha',
+        message: result.message || 'Captcha fetched. Waiting for user input.',
+        timestamp: new Date()
+      });
+      await task.save();
+      
+      logger.info(`Task ${taskId} awaiting captcha input`);
+      
+      // Notify user via WebSocket
+      emitTaskProgress(task.user.toString(), {
+        taskId: task._id,
+        status: 'awaiting_input',
+        message: 'Please solve the captcha',
+        progress: 50,
+        needsCaptcha: true,
+        captchaImageBase64: result.captchaImageBase64,
+        sessionId: result.sessionId
+      });
+      
+      // ✨ Return success - Bull will complete the job
+      // The task is paused in DB with 'awaiting_input' status
+      return { status: 'awaiting_input', ...result };
+      
+    } else {
+      // Task fully completed
+      await task.markAsCompleted(result);
 
-    // Notify user
-    emitTaskCompleted(task.user.toString(), {
-      taskId: task._id,
-      result
-    });
+      // Notify user
+      emitTaskCompleted(task.user.toString(), {
+        taskId: task._id,
+        result
+      });
 
-    logger.info(`Task ${taskId} completed successfully`);
+      logger.info(`Task ${taskId} completed successfully`);
 
-    return result;
+      return result;
+    }
 
   } catch (error) {
     logger.error(`Task ${taskId} failed:`, {

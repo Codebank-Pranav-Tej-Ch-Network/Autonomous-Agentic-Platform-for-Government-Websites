@@ -40,6 +40,34 @@ const TASK_CONFIGURATIONS = {
     optionalDynamicParams: [],
     description: 'Check EPFO balance',
     estimatedDuration: 180000
+  },
+  search: {
+    description: 'Search vehicle details',
+    profileFields: [],
+    requiredDynamicParams: ['regNo', 'state'],
+    optionalDynamicParams: [],
+    estimatedDuration: 120000
+  },
+  register: {
+    description: 'Register a new vehicle',
+    profileFields: ['email'],
+    requiredDynamicParams: [],
+    optionalDynamicParams: [],
+    estimatedDuration: 180000
+  },
+  transfer: {
+    description: 'Transfer vehicle ownership',
+    profileFields: ['email'],
+    requiredDynamicParams: ['regNo', 'state'],
+    optionalDynamicParams: [],
+    estimatedDuration: 240000
+  },
+  update: {
+    description: 'Update vehicle contact details',
+    profileFields: ['email'],
+    requiredDynamicParams: ['regNo', 'state'],
+    optionalDynamicParams: [],
+    estimatedDuration: 120000
   }
 };
 
@@ -143,25 +171,63 @@ class LLMRouter {
 _buildPrompt(userMessage, context) {
   const userProfile = context.userProfile || {};
   const previousParams = context.previousExtractedParams || {};
-  
-  // Build better context for clarifications
+
   let contextStr = '';
   if (Object.keys(previousParams).length > 0) {
     contextStr = `\nPREVIOUSLY EXTRACTED: ${JSON.stringify(previousParams)}`;
   }
-  
-  return `You are a task classifier for Indian government services. Respond with JSON ONLY.
+
+  return `You are a task classifier for Indian government services and VAHAN vehicle portal. Respond with JSON ONLY.
 
 TASKS:
 1. itr_filing - File Income Tax Return
    Required params: financialYear, income, deductions
    Optional: taxPaid, investmentDetails
-   
+
 2. digilocker_download - Download DigiLocker documents
    Required params: documentType
-   
+
 3. epfo_balance - Check EPF balance
    Required params: epfoPassword
+
+4. search - Search vehicle details
+   Required params: regNo, state
+
+5. register - Register a new vehicle
+   Required params: email
+
+6. transfer - Transfer vehicle ownership
+   Required params: regNo, state, email
+
+7. update - Update vehicle contact details
+   Required params: regNo, state, email
+
+Examples:
+
+User: "search DL01AB1234 in DL"
+AI: {
+  "taskType": "search",
+  "regNo": "DL01AB1234",
+  "state": "DL"
+}
+
+User: "register a new vehicle"
+AI: {
+  "taskType": "register"
+}
+
+User: "transfer ownership of MH01XY5678 in MH"
+AI: {
+  "taskType": "transfer",
+  "regNo": "MH01XY5678",
+  "state": "MH"
+}
+
+User: "update my contacts for KA05AB1234"
+AI: {
+  "taskType": "update",
+  "regNo": "KA05AB1234"
+}
 
 USER: "${userMessage}"${contextStr}
 
@@ -173,11 +239,8 @@ PROFILE:
 INSTRUCTIONS:
 1. Identify task type
 2. Extract ALL mentioned parameters from user message
-3. For itr_filing: Look for income/salary, deductions, taxPaid, financial year
-4. Merge with previously extracted params
-5. Check what's still missing
-
-IMPORTANT: If user mentions "deductions: 150000", extract it as {"deductions": "150000"}
+3. Merge with previously extracted params
+4. Check what's still missing
 
 Respond with JSON:
 {
@@ -261,15 +324,15 @@ _parseResponse(text) {
   }
 }
 
-  _validateClassification(obj) {
-    if (!obj.taskType || !Object.keys(TASK_CONFIGURATIONS).includes(obj.taskType)) {
-      throw new Error(`Invalid task: ${obj.taskType}`);
-    }
-    if (typeof obj.confidence !== 'number') obj.confidence = 0.5;
-    if (!obj.extractedParams) obj.extractedParams = {};
-    return obj;
+_validateClassification(obj) {
+  const validTasks = Object.keys(TASK_CONFIGURATIONS);
+  if (!obj.taskType || !validTasks.includes(obj.taskType)) {
+    throw new Error(`Invalid task: ${obj.taskType}`);
   }
-
+  if (typeof obj.confidence !== 'number') obj.confidence = 0.5;
+  if (!obj.extractedParams) obj.extractedParams = {};
+  return obj;
+}
   async enrichWithProfileData(classification, user) {
     const config = TASK_CONFIGURATIONS[classification.taskType];
 
@@ -368,16 +431,18 @@ for (const param of config.requiredDynamicParams) {
     return labels[fieldPath] || fieldPath;
   }
 
-  _paramToLabel(param) {
-    const labels = {
-      financialYear: 'Financial Year (e.g., 2023-24)',
-      income: 'Total Annual Income',
-      deductions: 'Tax Deductions',
-      documentType: 'Document Type',
-      epfoPassword: 'EPFO Password'
-    };
-    return labels[param] || param;
-  }
+   _paramToLabel(param) {
+  const labels = {
+    financialYear: 'Financial Year (e.g., 2023-24)',
+    income: 'Total Annual Income',
+    deductions: 'Tax Deductions',
+    documentType: 'Document Type',
+    epfoPassword: 'EPFO Password',
+    regNo: 'Vehicle Registration Number',
+    state: 'State Code (e.g., DL, MH, KA)'
+  };
+  return labels[param] || param;
+}
 
   sanitizeProfileForLLM(user) {
     return {
