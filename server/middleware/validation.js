@@ -44,14 +44,21 @@ const validate = (schema, property = 'body') => {
     if (error) {
       const errorMessages = error.details.map(detail => ({
         field: detail.path.join('.'),
-        message: detail.message
+        message: detail.message,
+	type: detail.type,
+	context: detail.context
       }));
 
       logger.warn('Validation failed:', {
         property,
         errors: errorMessages,
-        receivedData: req[property]
+        receivedData: JSON.stringify(req[property], null, 2) // Better logging
       });
+     // Also log to console for immediate debugging
+  console.error('❌ Validation Error Details:');
+  console.error('Property:', property);
+  console.error('Errors:', JSON.stringify(errorMessages, null, 2));
+  console.error('Received Data:', JSON.stringify(req[property], null, 2));
 
       return res.status(400).json({
         success: false,
@@ -140,9 +147,10 @@ const loginSchema = Joi.object({
 });
 
 // Task creation from natural language validation
+// Task creation from natural language validation
 const createTaskSchema = Joi.object({
   message: Joi.string()
-    .min(3)
+    .min(1)
     .max(2000)
     .required()
     .trim()
@@ -152,11 +160,15 @@ const createTaskSchema = Joi.object({
       'any.required': 'Message is required'
     }),
 
-  conversationContext: Joi.object()
-    .unknown(true)  // Allow any properties in the context object
-    .allow(null)     // Explicitly allow null
-    .optional()      // Make it truly optional
-    .default(null)   // Default to null if not provided
+  conversationContext: Joi.object({
+    conversationId: Joi.string().optional(),
+    taskType: Joi.string().optional(),
+    extractedParams: Joi.object().unknown(true).optional()
+  })
+    .unknown(true)  // Allow any additional properties
+    .allow(null)    // Explicitly allow null
+    .optional()     // Make it truly optional
+    .default(null)  // Default to null if not provided
     .messages({
       'object.base': 'Conversation context must be an object'
     })
