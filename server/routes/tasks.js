@@ -13,7 +13,8 @@ const { protect } = require('../middleware/auth');
 const { validate, createTaskSchema } = require('../middleware/validation');
 const multer = require('multer');
 const path = require('path');
-
+const captchaController = require('../controllers/captchaController');
+const llmRouter = require('../services/llmRouter');
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -64,7 +65,7 @@ router.post(
   upload.array('files', 5), // Accept up to 5 files
   taskController.extractDataFromFiles
 );
-
+router.post('/captcha/submit', captchaController.submitCaptcha);
 /**
  * POST /api/v1/tasks/create
  * Create a new task from natural language input
@@ -75,7 +76,19 @@ router.post(
 router.post(
   '/create',
   validate(createTaskSchema),
-  taskController.createTaskFromNaturalLanguage
+  async (req, res, next) => {
+    // Add debug logging
+    console.log('📥 Task creation request body:', JSON.stringify(req.body, null, 2));
+    
+    // Call the original controller
+    try {
+      await taskController.createTaskFromNaturalLanguage(req, res, next);
+    } catch (error) {
+      console.error('❌ Task creation error:', error);
+      console.error('❌ Validation errors:', error.details || error.message);
+      next(error);
+    }
+  }
 );
 
 /**
@@ -97,10 +110,44 @@ router.post(
  * Query params: page?, limit?, status?
  * Returns: Paginated list of tasks
  */
-router.get(
-  '/',
-  taskController.getAllTasks
-);
+router.get('/', async (req, res) => {
+  try {
+    const Task = require('../models/Task');
+    const tasks = await Task.find({ user: req.user.id })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    const tasksWithPlainData = tasks.map(task => {
+      let inputDataObj = {};
+      if (task.inputData) {
+        if (task.inputData instanceof Map) {
+          task.inputData.forEach((value, key) => {
+            inputDataObj[key] = value;
+          });
+        } else {
+          inputDataObj = task.inputData;
+        }
+      }
+
+      return {
+        _id: task._id,
+        taskType: task.taskType,
+        status: task.status,
+        progress: task.progress,
+        inputData: inputDataObj,
+        result: task.result,
+        createdAt: task.createdAt,
+        completedAt: task.completedAt,
+        error: task.error
+      };
+    });
+
+    res.json({ success: true, data: tasksWithPlainData });
+  } catch (error) {
+    console.error('Get all tasks error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 /**
  * GET /api/v1/tasks/active
@@ -130,10 +177,47 @@ router.get(
  *
  * Returns: Just the status and progress info
  */
-router.get(
-  '/:id/status',
-  taskController.getTaskStatus
-);
+router.get('/:id/status', async (req, res) => {
+  try {
+    const Task = require('../models/Task');
+    const task = await Task.findById(req.params.id);
+    
+    if (!task) {
+      return res.status(404).json({ success: false, message: 'Task not found' });
+    }
+
+    // Convert inputData Map to plain object
+    let inputDataObj = {};
+    if (task.inputData) {
+      if (task.inputData instanceof Map) {
+        task.inputData.forEach((value, key) => {
+          inputDataObj[key] = value;
+        });
+      } else {
+        inputDataObj = task.inputData;
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        _id: task._id,
+        status: task.status,
+        progress: task.progress,
+        result: task.result,
+        inputData: inputDataObj,  // ✅ Plain object, not Map
+        taskType: task.taskType,
+        error: task.error,
+        latestUpdate: task.progressDetails?.length > 0 
+          ? task.progressDetails[task.progressDetails.length - 1] 
+          : null
+      }
+    });
+  } catch (error) {
+    console.error('Status fetch error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 /**
  * POST /api/v1/tasks/:id/cancel
@@ -184,6 +268,32 @@ router.get('/history/itr', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch history' });
   }
 });
+router.post('/classify', protect, async (req, res) => {
+  try {
+    const { text } = req.body;
+    const userId = req.user._id;
 
+    if (!text) {
+      return res.status(400).json({
+        success: false,
+        message: 'Text input is required'
+      });
+    }
+
+    const classification = await llmRouter.classifyWithUserContext(text, userId);
+
+    res.json({
+      success: true,
+      data: classification
+    });
+
+  } catch (error) {
+    console.error('Classification error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to classify request'
+    });
+  }
+});
 module.exports = router;
 
