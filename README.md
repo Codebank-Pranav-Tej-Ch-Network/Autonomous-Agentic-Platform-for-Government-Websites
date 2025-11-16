@@ -1,4 +1,4 @@
-# 📖 Gov-Automate: Complete Developer Documentation
+# 📖 Government-Automate: Complete Developer Documentation
 
 **An Open-Source AI-Powered Unified Platform for Seamless Citizen-Government Interactions**
 
@@ -43,7 +43,7 @@ This fragmentation creates barriers to access, especially for non-technical user
 
 ### The Vision
 
-**Gov-Automate** democratizes access to government services by creating a **single, intelligent, conversational interface** that:
+**Government-Automate** democratizes access to government services by creating a **single, intelligent, conversational interface** that:
 
 1. **Understands Intent:** Natural language processing to recognize what citizens need
 2. **Automates Complexity:** Browser automation handles portal navigation
@@ -53,7 +53,7 @@ This fragmentation creates barriers to access, especially for non-technical user
 
 ### The Impact
 
-By 2030, we envision Gov-Automate becoming the **de facto standard** for citizen-government interactions in India, serving millions of citizens across all states and enabling:
+In a few years, we envision Government-Automate like architectures becoming the **de facto standard** for citizen-government interactions in India, serving millions of citizens across all states and enabling:
 - **50% reduction** in average time to complete government tasks
 - **80% reduction** in form submission errors
 - **Universal access** regardless of technical literacy
@@ -1335,15 +1335,12 @@ UI Updates with Progress
 
 ---
 
-## 👥 Authors & Contributors
-
-### Core Team
-
-**Project Lead & Architecture**
-- **Sunny Rosy** (sunnyrosyptaj@gmail.com)
-  - Role: Project Lead, Backend Architecture
-  - Expertise: Node.js, Express, MongoDB, Playwright
-  - Contributions: System design, automation engines, API development
+## 👥 Authors 
+- **Ch Pranav Tej (CS24B057)** - *Scrum Master, AIML Dev, Full Stack Dev*- [Pranav Tej](https://github.com/Codebank-Pranav-Tej-Ch-Network) - Contributions include Management of All Tasks, Organizing meetings, Planning pipeline, Building of ITRFiling script, Creating Income Tax mock portal and the Decentralized Agentic Platform for Income Tax Website [Link](https://github.com/Codebank-Pranav-Tej-Ch-Network/Autonomous-Agentic-Platform-for-Government-Websites), and final integration of all scripts.
+- **M Nikhil (CS24B026)** - *Full Stack Dev, AIML Dev* - [Nikhil](https://github.com/nikhil-muvvala) - Contributions include Planning Pipeline, Building of Vahan portal, Vahan portal automation scripts, and Centralized Agentic Platform for the 3 websites with full on integration. Also wrote the documentation
+- **G Siddhardha (CS24B012)** - *Full Stack Dev, AIML Dev* - [Siddhardha](https://github.com/Siddhardha-11) - Contributions include Front end Design, Building of E-ID Portal, E-ID portal automation scripts, and Centralized Agentic Platform for the 3 websites with help in integration.
+- **M Vinay Sai (CS24B027)** - *Full Stack Dev, AIML Dev* - [Vinay](https://github.com/VinaySai-GH) - Contributions include building of the Passport Seva portal, Passport Seva portal automation scripts, and help in Centralized Agentic Platform for the 3 websites.
+- **S Hemanth (CS24B044)** - *Full Stack Dev, AIML Dev* - [Hemanth](https://github.com/Hemanth-SVS) - Contributions include building of the Passport Seva portal, Backend Design, and help in integration of the final Centralized Agentic Platform for the 3 websites with help in integration. 
 
 ### Contributors Welcome!
 
@@ -1352,8 +1349,6 @@ We encourage contributions from the open-source community. Please see [Contribut
 ### Acknowledgments
 
 - **IIT Tirupati** - Academic institution providing guidance and support
-- **SEVA Labs** - Research lab collaboration
-- **Open Source Community** - For the amazing tools and libraries used
 
 ---
 
@@ -1389,7 +1384,7 @@ SOFTWARE.
 
 ### Open Source Principles
 
-Gov-Automate is committed to:
+Government-Automate is committed to:
 
 1. **Transparency:** All code is publicly available and auditable
 2. **Accessibility:** Free for individuals and non-profit use
@@ -1498,22 +1493,6 @@ PORT=5001
 
 ---
 
-### FAQs
-
-**Q: How do I run tests?**
-A: `npm test` in both `/server` and `/client` directories
-
-**Q: How do I deploy to production?**
-A: See [DEPLOYMENT.md](./docs/DEPLOYMENT.md) (coming soon)
-
-**Q: Can I modify mock portals?**
-A: Yes! They're in `/mock-portals` and can be customized for testing
-
-**Q: How do I add a new government service?**
-A: See [Adding New Services Guide](./docs/ADD_SERVICE.md)
-
----
-
 ## 🗺️ Roadmap & Future Enhancements
 
 ### Phase 1 (Q4 2025) - Current Focus
@@ -1551,18 +1530,7 @@ A: See [Adding New Services Guide](./docs/ADD_SERVICE.md)
 
 - **GitHub Issues:** [Report bugs](https://github.com/repo/issues)
 - **Discussions:** [Ask questions](https://github.com/repo/discussions)
-- **Email:** support@gov-automate.in
-- **Twitter:** [@GovAutomate](https://twitter.com/GovAutomate)
-- **Discord:** [Join community](https://discord.gg/govAutomate)
-
----
-
-## 🎓 Learning Resources
-
-- [Architecture Deep Dive](./docs/ARCHITECTURE.md)
-- [API Development Guide](./docs/API_GUIDE.md)
-- [Automation Writing Tutorial](./docs/WRITE_AUTOMATION.md)
-- [Testing Guide](./docs/TESTING.md)
+- **Email:** [Mail Me!](pranavtej.9.1a@gmail.com)
 
 ---
 
