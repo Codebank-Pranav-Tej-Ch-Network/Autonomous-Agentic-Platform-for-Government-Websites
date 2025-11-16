@@ -80,7 +80,7 @@ export default function ResultsPanel({ tasks, onViewTask, onRetryTask }) {
       <div className="divide-y divide-gray-200">
         {tasks.map((task) => (
           <motion.div
-            key={task._id}
+            key={task._id || task.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             whileHover={{ backgroundColor: '#f9fafb' }}

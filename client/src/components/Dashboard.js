@@ -18,7 +18,7 @@ import { taskAPI, authAPI } from '../services/api';
 import websocket from '../services/websocket';
 import ProfileManagement from './ProfileManagement';
 import { toast } from 'react-toastify';
-
+import TaskDetailsModal from '../components/TaskDetailsModal';
 export default function Dashboard() {
   const [tasks, setTasks] = useState([]);
   const [activeTask, setActiveTask] = useState(null);
@@ -27,7 +27,7 @@ export default function Dashboard() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showChatHistory, setShowChatHistory] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
-
+  const [selectedTask, setSelectedTask] = useState(null);
   // Load chat history from localStorage on mount
   useEffect(() => {
     const savedChats = localStorage.getItem('chatHistory');
@@ -210,7 +210,7 @@ export default function Dashboard() {
   }, [loadTasks, saveConversationToHistory]);
 
   const handleViewTask = useCallback((task) => {
-    setActiveTask(task);
+    setSelectedTask(task);
   }, []);
 
   const handleRetryTask = useCallback(async (task) => {
@@ -382,6 +382,13 @@ export default function Dashboard() {
             />
           )}
         </AnimatePresence>
+       {/* Task Details Modal */}
+        {selectedTask && (
+          <TaskDetailsModal 
+            task={selectedTask} 
+            onClose={() => setSelectedTask(null)} 
+          />
+        )}
       </div>
     </div>
   );

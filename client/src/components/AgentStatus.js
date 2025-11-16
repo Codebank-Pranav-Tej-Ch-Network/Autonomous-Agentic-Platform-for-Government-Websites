@@ -1,52 +1,77 @@
-/**
- * AgentStatus Component
- * 
- * Displays real-time status updates for a running automation task.
- * Connects via WebSocket to receive live progress updates as the
- * automation script executes.
- * 
- * Visual elements:
- * - Progress bar showing completion percentage
- * - Step-by-step log of what's happening
- * - Live status badges (queued, processing, completed, failed)
- * - Screenshots captured during execution (if available)
- * - Error messages if something goes wrong
- */
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Clock, 
-  Loader, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Clock,
+  Loader,
+  CheckCircle,
+  XCircle,
   AlertCircle,
   Activity,
-  Download
+  Download,
+  Image as ImageIcon
 } from 'lucide-react';
 import websocket from '../services/websocket';
 import { taskAPI } from '../services/api';
+import axios from 'axios';
+// Helper function to safely handle task data
+const sanitizeTask = (taskData) => {
+  if (!taskData) return null;
+  
+  const safeTask = { ...taskData };
+  
+  // Convert empty objects to null to prevent React errors
+  if (safeTask.inputData && typeof safeTask.inputData === 'object' && Object.keys(safeTask.inputData).length === 0) {
+    safeTask.inputData = null;
+  }
+  if (safeTask.result && typeof safeTask.result === 'object' && Object.keys(safeTask.result).length === 0) {
+    safeTask.result = null;
+  }
+  
+  return safeTask;
+};
 
 export default function AgentStatus({ task: initialTask }) {
-  const [task, setTask] = useState(initialTask);
+  const [task, setTask] = useState(() => sanitizeTask(initialTask));
   const [progressHistory, setProgressHistory] = useState([]);
+  const [captchaSolution, setCaptchaSolution] = useState('');
+  const [submittingCaptcha, setSubmittingCaptcha] = useState(false);
+
+  // Load full task data on mount
+  useEffect(() => {
+    const loadFullTask = async () => {
+      if (initialTask && (initialTask.id || initialTask._id)) {
+        try {
+          const response = await taskAPI.getStatus(initialTask.id || initialTask._id);
+          if (response.data.data) {
+            setTask(sanitizeTask(response.data.data));
+          }
+        } catch (error) {
+          console.error('Error loading full task:', error);
+        }
+      }
+    };
+    loadFullTask();
+  }, [initialTask]);
 
   useEffect(() => {
     if (!task) return;
 
-    // Connect to WebSocket if not already connected
     const token = localStorage.getItem('authToken');
     if (token) {
       websocket.connect(token);
     }
 
-    // Listen for progress updates for this specific task
     const handleProgress = (data) => {
       if (data.taskId === task.id || data.taskId === task._id) {
-        setTask(prev => ({
+        setTask(prev => sanitizeTask({
           ...prev,
           status: data.status || prev.status,
-          progress: data.percentage !== undefined ? data.percentage : prev.progress
+          progress: data.percentage !== undefined ? data.percentage : prev.progress,
+          result: data.captchaImageBase64 ? {
+            ...(prev.result || {}),
+            captchaImageBase64: data.captchaImageBase64,
+            sessionId: data.sessionId
+          } : prev.result
         }));
 
         setProgressHistory(prev => [...prev, {
@@ -59,7 +84,7 @@ export default function AgentStatus({ task: initialTask }) {
 
     const handleCompleted = (data) => {
       if (data.taskId === task.id || data.taskId === task._id) {
-        setTask(prev => ({
+        setTask(prev => sanitizeTask({
           ...prev,
           status: 'completed',
           progress: 100
@@ -76,7 +101,7 @@ export default function AgentStatus({ task: initialTask }) {
 
     const handleFailed = (data) => {
       if (data.taskId === task.id || data.taskId === task._id) {
-        setTask(prev => ({
+        setTask(prev => sanitizeTask({
           ...prev,
           status: 'failed',
           error: data.error
@@ -94,20 +119,23 @@ export default function AgentStatus({ task: initialTask }) {
     websocket.on('task:completed', handleCompleted);
     websocket.on('task:failed', handleFailed);
 
-    // Also poll for status updates (fallback if WebSocket fails)
     const pollInterval = setInterval(async () => {
-      try {
-        const response = await taskAPI.getStatus(task.id || task._id);
+    // ⬇️⬇️⬇️ ADD THESE 4 LINES ⬇️⬇️⬇️
+    if (task.status === 'awaiting_input') {
+        console.log('⏸️ Skipping poll - awaiting user input');
+        return;
+    }
+    // ⬆️⬆️⬆️ END OF NEW CODE ⬆️⬆️⬆️
+    
+    try {
+        const response = await taskAPI.getStatus(task._id || task.id);
         if (response.data.data) {
-          setTask(prev => ({
-            ...prev,
-            ...response.data.data
-          }));
+            setTask(prev => ({ ...prev, ...response.data.data }));
         }
-      } catch (error) {
+    } catch (error) {
         console.error('Error polling task status:', error);
-      }
-    }, 5000); // Poll every 5 seconds
+    }
+}, 5000);
 
     return () => {
       websocket.off('task:progress', handleProgress);
@@ -117,6 +145,38 @@ export default function AgentStatus({ task: initialTask }) {
     };
   }, [task]);
 
+  const handleCaptchaSubmit = async () => {
+    if (!captchaSolution.trim()) {
+      alert('Please enter the captcha code');
+      return;
+    }
+
+setSubmittingCaptcha(true);
+try {
+  const response = await axios.post('/api/v1/tasks/captcha/submit', {
+    taskId: task._id || task.id,
+    captcha: captchaSolution,
+    sessionId: task.result?.sessionId || task.sessionId
+  }, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+    }
+  });
+
+  if (response.data.success) {
+    alert('Captcha submitted! Processing...');
+    setCaptchaSolution('');
+    // Task will be resumed automatically by the backend
+  } else {
+    alert(`Error: ${response.data.message || 'Failed to submit captcha'}`);
+  }
+} catch (error) {
+  console.error('Captcha submission error:', error);
+  alert(`Failed to submit captcha: ${error.response?.data?.message || error.message}`);
+} finally {
+  setSubmittingCaptcha(false);
+}
+};
   if (!task) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-8 text-center text-gray-500">
@@ -135,6 +195,8 @@ export default function AgentStatus({ task: initialTask }) {
         return 'red';
       case 'processing':
         return 'blue';
+      case 'awaiting_input':
+        return 'yellow';
       case 'queued':
       case 'pending':
         return 'yellow';
@@ -151,6 +213,8 @@ export default function AgentStatus({ task: initialTask }) {
         return <XCircle className="w-5 h-5" />;
       case 'processing':
         return <Loader className="w-5 h-5 animate-spin" />;
+      case 'awaiting_input':
+        return <AlertCircle className="w-5 h-5" />;
       case 'queued':
       case 'pending':
         return <Clock className="w-5 h-5" />;
@@ -162,37 +226,28 @@ export default function AgentStatus({ task: initialTask }) {
   const statusColor = getStatusColor();
   const statusIcon = getStatusIcon();
 
-const handleDownloadResults = async () => {
-  try {
-    // Check if task has documents
-    if (!task.result?.documents || task.result.documents.length === 0) {
-      alert('No documents available for download');
-      return;
-    }
+  const handleDownloadResults = async () => {
+    try {
+      if (!task.result?.documents || task.result.documents.length === 0) {
+        alert('No documents available for download');
+        return;
+      }
 
-    // Get the first document (ITR-V PDF)
-    const doc = task.result.documents[0];
-    
-    // Construct download URL
-    const downloadUrl = `http://localhost:5001${doc.url}`;
-    
-    console.log('Downloading from:', downloadUrl);
-    
-    // Create hidden anchor and trigger download
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = doc.filename;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    console.log('✅ Download initiated:', doc.filename);
-  } catch (error) {
-    console.error('Download failed:', error);
-    alert('Failed to download document. Please try again.');
-  }
-};
+      const doc = task.result.documents[0];
+      const downloadUrl = `http://localhost:5001${doc.url}`;
+
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = doc.filename;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Failed to download document. Please try again.');
+    }
+  };
 
   return (
     <motion.div
@@ -200,17 +255,16 @@ const handleDownloadResults = async () => {
       animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-xl shadow-lg overflow-hidden"
     >
-      {/* Header with Status */}
       <div className={`bg-gradient-to-r from-${statusColor}-500 to-${statusColor}-600 p-6 text-white`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             {statusIcon}
             <div>
               <h3 className="text-xl font-bold capitalize">
-                {task.taskType?.replace('_', ' ')}
+                {task.taskType?.replace('_', ' ') || 'Task'}
               </h3>
               <p className="text-sm opacity-90 capitalize">
-                Status: {task.status}
+                Status: {task.status?.replace('_', ' ') || 'unknown'}
               </p>
             </div>
           </div>
@@ -222,7 +276,6 @@ const handleDownloadResults = async () => {
           </div>
         </div>
 
-        {/* Progress Bar */}
         <div className="w-full bg-white bg-opacity-20 rounded-full h-3 overflow-hidden">
           <motion.div
             className="h-full bg-white rounded-full"
@@ -233,7 +286,55 @@ const handleDownloadResults = async () => {
         </div>
       </div>
 
-      {/* Progress History */}
+      {task.status === 'awaiting_input' && task.result?.captchaImageBase64 && (
+        <div className="p-6 bg-yellow-50 border-t-4 border-yellow-400">
+          <div className="flex items-center gap-2 mb-4 text-yellow-800">
+            <AlertCircle className="w-6 h-6" />
+            <h4 className="font-bold text-lg">Captcha Verification Required</h4>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 mb-4 flex justify-center border-2 border-yellow-300">
+            <img
+              src={task.result.captchaImageBase64}
+              alt="Captcha"
+              className="border-2 border-gray-300 rounded-lg"
+              style={{ maxHeight: '150px', maxWidth: '100%' }}
+            />
+          </div>
+
+          <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="Enter the captcha code"
+              value={captchaSolution}
+              onChange={(e) => setCaptchaSolution(e.target.value.toUpperCase())}
+              onKeyPress={(e) => e.key === 'Enter' && handleCaptchaSubmit()}
+              className="w-full px-4 py-3 border-2 border-yellow-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 text-lg font-mono text-center"
+              disabled={submittingCaptcha}
+              autoFocus
+            />
+
+            <button
+              onClick={handleCaptchaSubmit}
+              disabled={submittingCaptcha || !captchaSolution.trim()}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {submittingCaptcha ? (
+                <>
+                  <Loader className="w-5 h-5 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5" />
+                  Submit Captcha
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="p-6">
         <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <Activity className="w-5 h-5" />
@@ -291,7 +392,6 @@ const handleDownloadResults = async () => {
           )}
         </div>
 
-        {/* Error Display */}
         {task.error && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -302,13 +402,14 @@ const handleDownloadResults = async () => {
               <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
               <div>
                 <h5 className="font-semibold text-red-800 mb-1">Task Failed</h5>
-                <p className="text-sm text-red-700">{task.error.message || task.error}</p>
+                <p className="text-sm text-red-700">
+                  {typeof task.error === 'string' ? task.error : task.error?.message || 'Unknown error'}
+                </p>
               </div>
             </div>
           </motion.div>
         )}
 
-        {/* Download Results button (shown when completed) */}
         {task.status === 'completed' && (
           <button
             onClick={handleDownloadResults}
