@@ -152,5 +152,14 @@ export const taskAPI = {
    */
   retry: (id) => api.post(`/tasks/${id}/retry`)
 };
+// Add these inside your existing exports in api.js or create new named exports
+
+export const classify = (data) => {
+  return api.post('/llm/classify', data);
+};
+
+export const executeAutomation = (data) => {
+  return api.post('/automation/execute', data);
+};
 
 export default api;
