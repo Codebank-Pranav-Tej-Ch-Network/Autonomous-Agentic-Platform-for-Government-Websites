@@ -1,0 +1,14 @@
+{
+  "name": "ai-agent-backend",
+  "version": "1.0.0",
+  "description": "The 'brain' and 'robot' for the AI agent website.",
+  "main": "agent_server.js",
+  "scripts": {
+    "start": "node agent_server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.17.0",
+    "puppeteer": "^22.10.0"
+  }
+}
