@@ -46,37 +46,73 @@ exports.createTaskFromNaturalLanguage = async (req, res, next) => {
       });
     }
 
-    let classification;
+let classification;
 
-    try {
-      classification = await llmRouter.classifyWithUserContext(
-        message,
-        userId,
-        { conversationContext: req.body.conversationContext || null }
+try {
+  classification = await llmRouter.classifyWithUserContext(
+    message,
+    userId,
+    { conversationContext: req.body.conversationContext || null }
+  );
+
+  // Log the initial classification result
+  logger.info('Classification completed', {
+    taskType: classification.taskType,
+    confidence: classification.confidence,
+    readyToExecute: classification.readyToExecute,
+    missingFieldsCount: classification.missingFields?.length || 0
+  });
+
+  // Merge conversation context params with newly extracted params
+  if (req.body.conversationContext && req.body.conversationContext.extractedParams) {
+    logger.info('🔗 Merging conversation context params', {
+      previousParams: req.body.conversationContext.extractedParams,
+      newParams: classification.extractedParams
+    });
+
+    classification.extractedParams = {
+      ...req.body.conversationContext.extractedParams,
+      ...classification.extractedParams
+    };
+
+    logger.info('🔗 Merged params:', classification.extractedParams);
+
+    // Re-enrich with merged params to check if we now have everything
+    const taskConfig = llmRouter.getTaskConfig(classification.taskType);
+    const allParamsPresent = taskConfig.requiredDynamicParams.every(
+      param => classification.extractedParams[param]
+    );
+
+    if (allParamsPresent) {
+      classification.readyToExecute = true;
+      classification.missingFields = [];
+      classification.clarificationNeeded = false;
+      logger.info('✅ All required params now present after merge!', {
+        params: classification.extractedParams
+      });
+    } else {
+      // Still missing some params
+      const stillMissing = taskConfig.requiredDynamicParams.filter(
+        param => !classification.extractedParams[param]
       );
-
-      logger.info('Classification completed', {
-        taskType: classification.taskType,
-        confidence: classification.confidence,
-        readyToExecute: classification.readyToExecute,
-        missingFieldsCount: classification.missingFields?.length || 0
-      });
-
-    } catch (llmError) {
-      logger.error('LLM classification failed:', llmError);
-
-      // NEW: Use error translator for LLM errors
-      const friendlyError = await errorTranslator.translateError(llmError.message, {
-        taskType: 'classification',
-        step: 'Understanding your request'
-      });
-
-      return res.status(500).json({
-        success: false,
-        message: friendlyError,
-        technicalDetails: process.env.NODE_ENV === 'development' ? llmError.message : undefined
-      });
+      logger.info('⚠️ Still missing params after merge:', stillMissing);
     }
+  }
+
+} catch (llmError) {
+  logger.error('LLM classification failed:', llmError);
+
+  const friendlyError = await errorTranslator.translateError(llmError.message, {
+    taskType: 'classification',
+    step: 'Understanding your request'
+  });
+
+  return res.status(500).json({
+    success: false,
+    message: friendlyError,
+    technicalDetails: process.env.NODE_ENV === 'development' ? llmError.message : undefined
+  });
+}
 
     if (!classification || !classification.taskType) {
       return res.status(400).json({
@@ -87,14 +123,16 @@ exports.createTaskFromNaturalLanguage = async (req, res, next) => {
       });
     }
 
-    if (classification.confidence < 0.5) {
-      return res.json({
-        success: true,
-        needsClarification: true,
-        lowConfidence: true,
-        message: "I'm not quite sure what you want to do. Could you please rephrase your request? For example, you could say 'File my income tax return' or 'Download my driving license from DigiLocker'."
-      });
-    }
+    // Only check low confidence if this is the first message (no conversation context)
+// If we have context and merged params successfully, ignore low confidence
+if (classification.confidence < 0.5 && !req.body.conversationContext) {
+  return res.json({
+    success: true,
+    needsClarification: true,
+    lowConfidence: true,
+    message: "I'm not quite sure what you want to do. Could you please rephrase your request? For example, you could say 'File my income tax return' or 'Download my driving license from DigiLocker'."
+  });
+}
 
     if (classification.clarificationNeeded && !classification.readyToExecute) {
       if (!classification.clarificationQuestion) {
